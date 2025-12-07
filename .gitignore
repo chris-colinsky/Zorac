@@ -11,7 +11,8 @@ __pycache__/
 *.so
 
 # Session files
-.vllm_chat_session.json
+.zorac_session.json
+.zorac_history
 
 # Distribution / packaging
 .Python

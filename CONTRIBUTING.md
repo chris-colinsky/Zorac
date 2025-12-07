@@ -43,7 +43,7 @@ Enhancement suggestions are welcome! Please open an issue with:
 
 ```bash
 # Clone your fork
-git clone https://github.com/yourusername/zorac.git
+git clone https://github.com/chris-colinsky/zorac.git
 cd zorac
 
 # Install dependencies
