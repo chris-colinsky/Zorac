@@ -355,6 +355,20 @@ The codebase is structured for easy extension:
 4. **UI Customization**: Modify Rich console styling, colors, and panel formatting
 5. **Markdown Features**: Extend markdown rendering with custom Rich themes
 
+### AI-Friendly Documentation
+
+This project includes `CLAUDE.md`, a comprehensive development guide designed to help AI coding assistants (like Claude Code, GitHub Copilot, Cursor, etc.) understand the project architecture and conventions.
+
+**What it contains:**
+- Detailed project structure and file purposes
+- Architecture overview and design decisions
+- Configuration documentation
+- Development workflows and commands
+- Dependencies and their usage
+
+**Why it's useful:**
+If you're using AI-powered development tools, this file provides context that helps them give better suggestions, write code that matches project conventions, and understand the codebase structure. Human developers may also find it useful as comprehensive reference documentation.
+
 ## Troubleshooting
 
 ### Connection Issues
