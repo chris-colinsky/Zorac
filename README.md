@@ -3,6 +3,8 @@
 ![Python](https://img.shields.io/badge/python-3.13-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 ![vLLM](https://img.shields.io/badge/vLLM-compatible-purple.svg)
+![Platform](https://img.shields.io/badge/platform-linux%20%7C%20windows-lightgrey)
+![GPU](https://img.shields.io/badge/GPU-NVIDIA%20RTX-76B900?logo=nvidia)
 
 A fun terminal chat client for running **local LLMs on consumer hardware**. Chat with powerful AI models like Mistral-24B privately on your own RTX 4090/3090 - no cloud, no costs, complete privacy.
 
