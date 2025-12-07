@@ -4,9 +4,9 @@
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 ![vLLM](https://img.shields.io/badge/vLLM-compatible-purple.svg)
 
-A beautiful terminal chat client for running **local LLMs on consumer hardware**. Chat with powerful AI models like Mistral-24B privately on your own RTX 4090/3090 - no cloud, no costs, complete privacy.
+A fun terminal chat client for running **local LLMs on consumer hardware**. Chat with powerful AI models like Mistral-24B privately on your own RTX 4090/3090 - no cloud, no costs, complete privacy.
 
-Perfect for developers who want a **self-hosted ChatGPT alternative** running on their gaming PC or homelab server.
+Perfect for developers who want a **self-hosted ChatGPT alternative** running on their gaming PC or homelab server.  Also good for local AI coding assistants, agentic workflows and agent development.
 
 > Named after ZORAC, the intelligent Ganymean computer from James P. Hogan's *The Gentle Giants of Ganymede*.
 
@@ -33,9 +33,17 @@ Perfect for developers who want a **self-hosted ChatGPT alternative** running on
 
 ## Demo
 
-![Demo Screenshot](docs/demo.png)
+### Rich Terminal UI with Live Streaming
 
-> Add a screenshot of your terminal showing the chat interface in action!
+![Zorac Chat Interface](screenshots/zorac-screenshot-1.png)
+
+*Interactive chat with real-time streaming responses, markdown rendering, and performance metrics*
+
+### Token Management & Commands
+
+![Token Usage and Commands](screenshots/zorac-screenshot-2.png)
+
+*Built-in commands for session management and token tracking*
 
 ## Supported Hardware
 
@@ -102,7 +110,7 @@ brew install uv
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/zorac.git
+git clone https://github.com/chris-colinsky/zorac.git
 cd zorac
 
 # Install dependencies (uv will automatically create a virtual environment)
@@ -147,44 +155,27 @@ Assistant: [Response...]
 | `/quit` or `/exit` | Save session and exit |
 | `Ctrl+C` | Interrupt current operation without exiting |
 
-### Example Session
+### Example Usage
 
 ```bash
-$ python zorac.py
+# Start the chat client
+$ uv run zorac.py
 
- Loaded previous session (8 messages, ~2847 tokens)
+# Ask questions naturally
+You: Explain how Python async/await works
 
-============================================================
-Interactive Chat with vLLM
-============================================================
+# Get streaming responses with markdown formatting
+Assistant: [Streams formatted response with code examples...]
+Stats: 245 tokens in 3.8s (64.5 tok/s) | Total: 4 msgs | Tokens: 312/12000
 
-Commands:
-  /clear     - Clear conversation history
-  /save      - Manually save session
-  /load      - Reload session from disk
-  /tokens    - Show current token usage
-  /summarize - Force summarization of conversation
-  /summary   - Show current conversation summary
-  /quit      - Exit the chat
-
-Connected to: http://{vllm_server_ip}:8000/v1
-Model: stelterlab/Mistral-Small-24B-Instruct-2501-AWQ
-Auto-save: /Users/username/.vllm_chat_session.json
-============================================================
-
-You: Hello!
-Assistant: Hello! How can I help you today?
-------------------------------------------------------------
-Stats: 12 tokens in 0.45s (26.67 tok/s) | Total msgs: 3 | Tokens: ~89/12000
-
+# Use commands for session management
 You: /tokens
+Current: 312 tokens | Limit: 12000 | Remaining: 11688
 
-=� Token usage:
-   Current: ~89 tokens
-   Limit: 12000 tokens
-   Remaining: ~11911 tokens
-   Messages: 3
+You: /quit
+Session saved. Goodbye!
 ```
+
 
 ## Configuration
 
@@ -199,14 +190,14 @@ VLLM_API_KEY=EMPTY
 VLLM_MODEL=stelterlab/Mistral-Small-24B-Instruct-2501-AWQ
 
 # Optional: Custom session file location
-# VLLM_SESSION_FILE=/path/to/custom/session.json
+# ZORAC_SESSION_FILE=/path/to/custom/session.json
 ```
 
 You can also override settings using environment variables:
 
 ```bash
 # Override .env settings
-VLLM_BASE_URL="http://192.168.1.100:8000/v1" uv run zorac.py
+VLLM_BASE_URL="http://YOUR_SERVER_IP:8000/v1" uv run zorac.py
 ```
 
 ### Token Limits
@@ -214,7 +205,7 @@ VLLM_BASE_URL="http://192.168.1.100:8000/v1" uv run zorac.py
 Adjust these constants at the top of `zorac.py`:
 
 ```python
-SESSION_FILE = Path.home() / ".vllm_chat_session.json"  # Session storage location
+SESSION_FILE = Path.home() / ".zorac_session.json"  # Session storage location
 MAX_INPUT_TOKENS = 12000   # Maximum tokens for input (system + history)
 MAX_OUTPUT_TOKENS = 4000   # Maximum tokens for model responses
 KEEP_RECENT_MESSAGES = 6   # Messages to preserve during auto-summarization
@@ -232,7 +223,7 @@ stream=True           # Real-time streaming with live markdown rendering
 
 ### Session Management
 
-1. **Auto-Save**: After each assistant response, the conversation is saved to `~/.vllm_chat_session.json`
+1. **Auto-Save**: After each assistant response, the conversation is saved to `~/.zorac_session.json`
 2. **Auto-Load**: When you start the client, it automatically loads your previous session
 3. **Manual Control**: Use `/save` and `/load` commands for manual session management
 
@@ -400,7 +391,7 @@ Error loading session: [Errno 2] No such file or directory
 
 To reset your session:
 ```bash
-rm ~/.vllm_chat_session.json
+rm ~/.zorac_session.json
 ```
 
 ## Requirements
