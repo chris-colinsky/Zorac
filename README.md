@@ -133,6 +133,42 @@ cp .env.example .env
 uv run zorac.py
 ```
 
+### CLI Installation (Optional)
+
+You can install Zorac globally as a command-line tool, so you don't need to manage virtual environments manually.
+
+```bash
+# Using uv (Recommended)
+uv tool install .
+
+# Using pip
+pip install .
+
+# Then run from anywhere:
+zorac
+```
+
+### Quick Run (uvx)
+
+If you just want to run Zorac without installing it (ephemeral execution):
+
+```bash
+# Run directly from the current directory
+uvx --from . zorac
+```
+
+### Upgrading
+
+If you've installed Zorac via `uv tool` and pulled new changes:
+
+```bash
+# Pull latest changes
+git pull
+
+# Upgrade the installed tool
+uv tool upgrade zorac
+```
+
 ## Usage
 
 ### Basic Interaction
