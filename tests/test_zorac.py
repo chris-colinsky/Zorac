@@ -27,9 +27,7 @@ class TestCountTokens(unittest.TestCase):
 
     def test_count_tokens_simple_message(self):
         """Test token counting with a simple message"""
-        messages: list[ChatCompletionMessageParam] = [
-            {"role": "user", "content": "hello"}
-        ]
+        messages: list[ChatCompletionMessageParam] = [{"role": "user", "content": "hello"}]
         count = count_tokens(messages)
         self.assertGreater(count, 0)
         # Should be at least 6 tokens (4 overhead + 1 for 'hello' + 2 base)
@@ -37,7 +35,7 @@ class TestCountTokens(unittest.TestCase):
 
     def test_count_tokens_empty_list(self):
         """Test token counting with empty message list"""
-        messages = []
+        messages: list[ChatCompletionMessageParam] = []
         # Base overhead for reply prime
         self.assertEqual(count_tokens(messages), 2)
 
@@ -54,9 +52,7 @@ class TestCountTokens(unittest.TestCase):
     def test_count_tokens_long_content(self):
         """Test token counting with long content"""
         long_content = " ".join(["word"] * 100)
-        messages: list[ChatCompletionMessageParam] = [
-            {"role": "user", "content": long_content}
-        ]
+        messages: list[ChatCompletionMessageParam] = [{"role": "user", "content": long_content}]
         count = count_tokens(messages)
         # Should be significantly more tokens
         self.assertGreater(count, 100)
@@ -71,7 +67,7 @@ class TestCountTokens(unittest.TestCase):
                     {"type": "text", "text": "Hello"},
                     {"type": "text", "text": "World"},
                 ],
-            } # type: ignore
+            }
         ]
         count = count_tokens(messages)
         self.assertGreater(count, 0)
@@ -82,7 +78,7 @@ class TestSessionManagement(unittest.TestCase):
 
     def setUp(self):
         """Create a temporary file for testing"""
-        self.temp_file = tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.json')  # noqa: SIM115
+        self.temp_file = tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".json")  # noqa: SIM115
         self.temp_path = Path(self.temp_file.name)
         self.temp_file.close()
 
@@ -138,7 +134,7 @@ class TestSessionManagement(unittest.TestCase):
 
     def test_load_session_invalid_json(self):
         """Test loading from file with invalid JSON"""
-        with open(self.temp_path, 'w') as f:
+        with open(self.temp_path, "w") as f:
             f.write("invalid json content {{{")
 
         loaded = load_session(self.temp_path)
@@ -157,28 +153,29 @@ class TestSessionManagement(unittest.TestCase):
 class TestPrintHeader(unittest.TestCase):
     """Test header printing functionality"""
 
-    @patch('zorac.console')
+    @patch("zorac.console")
     def test_print_header_calls_console(self, mock_console):
-        """Test that print_header calls console.print"""
+        """Test that print_header calls console.print twice (logo + panel)"""
         print_header()
-        mock_console.print.assert_called_once()
+        # Should be called twice: once for logo, once for panel
+        self.assertEqual(mock_console.print.call_count, 2)
 
-    @patch('zorac.console')
+    @patch("zorac.console")
     def test_print_header_contains_url(self, mock_console):
         """Test that header contains the vLLM URL"""
         print_header()
-        # Get the Panel object that was passed to console.print
-        panel = mock_console.print.call_args[0][0]
+        # Get the Panel object from the second call (first is logo, second is panel)
+        panel = mock_console.print.call_args_list[1][0][0]
         # Extract the text content from the panel
         panel_text = str(panel.renderable)
         self.assertIn(VLLM_BASE_URL, panel_text)
 
-    @patch('zorac.console')
+    @patch("zorac.console")
     def test_print_header_contains_model(self, mock_console):
         """Test that header contains the model name"""
         print_header()
-        # Get the Panel object that was passed to console.print
-        panel = mock_console.print.call_args[0][0]
+        # Get the Panel object from the second call (first is logo, second is panel)
+        panel = mock_console.print.call_args_list[1][0][0]
         # Extract the text content from the panel
         panel_text = str(panel.renderable)
         self.assertIn(VLLM_MODEL, panel_text)
@@ -226,7 +223,7 @@ class TestSummarizeOldMessages(unittest.TestCase):
         if isinstance(content, str):
             self.assertIn("Previous conversation summary", content)
 
-    @patch('zorac.console')
+    @patch("zorac.console")
     def test_summarize_handles_api_error(self, mock_console):
         """Test that summarization handles API errors gracefully"""
         self.mock_client.chat.completions.create.side_effect = Exception("API Error")
@@ -266,7 +263,10 @@ class TestSummarizeOldMessages(unittest.TestCase):
         """Test that we can identify and extract summary from message list"""
         messages: list[ChatCompletionMessageParam] = [
             {"role": "system", "content": "You are a helpful assistant."},
-            {"role": "system", "content": "Previous conversation summary: This is the summary text."},
+            {
+                "role": "system",
+                "content": "Previous conversation summary: This is the summary text.",
+            },
             {"role": "user", "content": "Recent message"},
         ]
 
@@ -274,10 +274,10 @@ class TestSummarizeOldMessages(unittest.TestCase):
         content = messages[1].get("content", "")
         # Cast to str or check instance to satisfy type checker for startswith
         has_summary = (
-            len(messages) > 1 and
-            messages[1].get("role") == "system" and
-            isinstance(content, str) and
-            content.startswith("Previous conversation summary:")
+            len(messages) > 1
+            and messages[1].get("role") == "system"
+            and isinstance(content, str)
+            and content.startswith("Previous conversation summary:")
         )
         self.assertTrue(has_summary)
 
@@ -317,7 +317,7 @@ class TestIntegration(unittest.TestCase):
 
     def setUp(self):
         """Set up temporary session file"""
-        self.temp_file = tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.json')  # noqa: SIM115
+        self.temp_file = tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".json")  # noqa: SIM115
         self.temp_path = Path(self.temp_file.name)
         self.temp_file.close()
 
@@ -362,9 +362,9 @@ class TestIntegration(unittest.TestCase):
         loaded_messages = load_session(self.temp_path)
 
         if loaded_messages is not None:
-             loaded_count = count_tokens(loaded_messages)
-             self.assertEqual(original_count, loaded_count)
+            loaded_count = count_tokens(loaded_messages)
+            self.assertEqual(original_count, loaded_count)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

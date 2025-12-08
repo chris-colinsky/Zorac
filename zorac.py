@@ -82,9 +82,20 @@ def load_session(filepath=SESSION_FILE):
 
 
 def print_header():
-    """Print welcome header"""
-    header_text = f"""[bold cyan]Chat with Zorac[/bold cyan]
-[dim]Connected to: {VLLM_BASE_URL}[/dim]
+    """Print welcome header with ASCII art logo"""
+    # ASCII art logo for Zorac (purple color matching terminal prompt)
+    logo = """[bold purple]
+     ███████╗ ██████╗ ██████╗  █████╗  ██████╗`
+     ╚══███╔╝██╔═══██╗██╔══██╗██╔══██╗██╔════╝
+       ███╔╝ ██║   ██║██████╔╝███████║██║
+      ███╔╝  ██║   ██║██╔══██╗██╔══██║██║
+     ███████╗╚██████╔╝██║  ██║██║  ██║╚██████╗
+     ╚══════╝ ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝ ╚═════╝
+[/bold purple]
+        [dim italic]intelligence running on localhost[/dim italic]
+"""
+
+    header_text = f"""[dim]Connected to: {VLLM_BASE_URL}[/dim]
 [dim]Model: {VLLM_MODEL}[/dim]
 
 [bold]Commands:[/bold]
@@ -96,6 +107,7 @@ def print_header():
   [green]/summary[/green]   - Show current conversation summary
   [green]/quit[/green]      - Exit the chat"""
 
+    console.print(logo)
     console.print(Panel(header_text, box=box.ROUNDED, expand=False))
 
 
@@ -199,6 +211,9 @@ def setup_readline():
 
 
 def main():
+    # Print welcome message first
+    print_header()
+
     # Setup readline history
     setup_readline()
 
@@ -222,9 +237,6 @@ def main():
     else:
         # Initialize conversation memory with system message
         messages = [{"role": "system", "content": "You are a helpful assistant."}]
-
-    # Print welcome message
-    print_header()
 
     # Interactive loop
     while True:
@@ -329,7 +341,12 @@ def main():
             console.print("\n[bold purple]Assistant:[/bold purple]")
 
             full_content = ""
-            with Live("", refresh_per_second=10, vertical_overflow="visible") as live:
+            first_chunk_received = False
+
+            # Show loading animation while waiting for response
+            with console.status(
+                "[bold purple]Thinking...[/bold purple]", spinner="dots", spinner_style="purple"
+            ) as status:
                 try:
                     stream = client.chat.completions.create(
                         model=VLLM_MODEL,
@@ -339,11 +356,18 @@ def main():
                         stream=True,
                     )
 
-                    for chunk in stream:
-                        if chunk.choices[0].delta.content:
-                            content_chunk = chunk.choices[0].delta.content
-                            full_content += content_chunk
-                            live.update(Markdown(full_content))
+                    # Process the stream
+                    with Live("", refresh_per_second=10, vertical_overflow="visible") as live:
+                        for chunk in stream:
+                            if chunk.choices[0].delta.content:
+                                # Stop the loading animation on first chunk
+                                if not first_chunk_received:
+                                    status.stop()
+                                    first_chunk_received = True
+
+                                content_chunk = chunk.choices[0].delta.content
+                                full_content += content_chunk
+                                live.update(Markdown(full_content))
 
                 except Exception as e:
                     console.print(f"[red]Error receiving response: {e}[/red]")
