@@ -16,8 +16,16 @@ Interactive CLI chat client for a vLLM inference server running on local homelab
 
 ## File Structure
 
-- **zorac.py**: Main interactive CLI application (single-file implementation)
-- **tests/**: Comprehensive test suite with 30+ test cases
+- **zorac/**: Main package directory containing the application modules
+  - **__init__.py**: Package exports and public API
+  - **__main__.py**: Entry point for `python -m zorac`
+  - **config.py**: Configuration management and environment variables
+  - **console.py**: Rich console singleton for terminal output
+  - **llm.py**: LLM interaction and conversation summarization
+  - **main.py**: Main event loop and interactive CLI logic
+  - **session.py**: Session persistence (save/load functionality)
+  - **utils.py**: Utility functions (token counting, header display, connection checks)
+- **tests/**: Comprehensive test suite with 28 test cases
   - **test_zorac.py**: Unit and integration tests
   - **__init__.py**: Test package marker
 - **.env**: Configuration file for server settings (not committed to git)
@@ -26,21 +34,41 @@ Interactive CLI chat client for a vLLM inference server running on local homelab
 - **.pre-commit-config.yaml**: Pre-commit hooks configuration
 - **SERVER_SETUP.md**: Complete self-hosting guide with hardware optimization
 - **README.md**: User documentation optimized for SEO/discoverability
-- **GITHUB_METADATA.md**: Repository metadata and SEO recommendations
+- **CONTRIBUTING.md**: Contribution guidelines and development workflow
 - **pyproject.toml**: Project metadata, dependencies, and tool configurations (managed by `uv`)
 - **.python-version**: Python 3.13 (pinned)
 
 ## Architecture Overview
 
-**zorac.py** is a single-file application with the following key components:
+Zorac is organized as a modular Python package with clear separation of concerns:
 
-### Core Functions
-- `count_tokens(messages)`: Uses tiktoken to count tokens in conversation history
-- `save_session(messages)`: Persists conversation to `~/.zorac_session.json`
+### Package Modules
+
+**zorac/config.py** - Configuration Management
+- `load_config()`: Load configuration from `~/.zorac/config.json`
+- `save_config(config)`: Save configuration to disk
+- `get_setting(key, default)`: Get setting with priority: Env Var > Config File > Default
+- `ensure_zorac_dir()`: Ensure `~/.zorac/` directory exists
+- Constants: `VLLM_BASE_URL`, `VLLM_MODEL`, `VLLM_API_KEY`, `MAX_INPUT_TOKENS`, etc.
+
+**zorac/session.py** - Session Management
+- `save_session(messages)`: Persists conversation to `~/.zorac/session.json`
 - `load_session()`: Restores conversation from disk
-- `print_header()`: Displays formatted welcome header with Rich panels
+
+**zorac/utils.py** - Utility Functions
+- `count_tokens(messages)`: Uses tiktoken to count tokens in conversation history
+- `print_header()`: Displays formatted welcome header with Rich panels and ASCII art logo
+- `check_connection(client)`: Verifies connection to vLLM server
+
+**zorac/llm.py** - LLM Operations
 - `summarize_old_messages(client, messages)`: Auto-summarizes when approaching token limit with status spinner
+
+**zorac/console.py** - Terminal Interface
+- `console`: Shared Rich Console instance for all terminal output
+
+**zorac/main.py** - Main Application
 - `main()`: Interactive loop handling user input, streaming API calls, and session management
+- `setup_readline()`: Configure command history and persistent storage
 
 ### UI/UX Implementation
 - **Rich Console**: All output uses Rich library for colored, formatted terminal display
@@ -51,33 +79,43 @@ Interactive CLI chat client for a vLLM inference server running on local homelab
 - **Color Coding**: Consistent color scheme (blue=user, purple=assistant, green=success, red=error, yellow=warning)
 
 ### Key Features
-- **Persistent Sessions**: Auto-saves after each assistant response to `~/.zorac_session.json`
+- **Persistent Sessions**: Auto-saves after each assistant response to `~/.zorac/session.json`
 - **Auto-Summarization**: When conversation exceeds 12k tokens, summarizes older messages while preserving the last 6 messages
 - **Streaming Responses**: Real-time token streaming with live markdown rendering
-- **Rich Terminal UI**: Colored output, formatted panels, and markdown rendering using Rich library
+- **Rich Terminal UI**: Colored output, formatted panels, markdown rendering, and ASCII art logo
 - **Token Tracking**: Real-time monitoring using tiktoken (cl100k_base encoding)
 - **Performance Metrics**: Displays tokens/second, response time, and token usage after each interaction
-- **Interactive Commands**: `/clear`, `/save`, `/load`, `/tokens`, `/summarize`, `/summary`, `/quit`, `/exit`
+- **Command History**: Persistent readline history stored in `~/.zorac/history`
+- **Interactive Commands**: `/clear`, `/save`, `/load`, `/tokens`, `/summarize`, `/summary`, `/config`, `/quit`, `/exit`
 
 ## Configuration
 
 Configuration is managed through a `.env` file in the project root. Copy `.env.example` to `.env` and customize as needed.
 
-### Server Configuration (via .env file)
+### Server Configuration (via .env file or `~/.zorac/config.json`)
 - `VLLM_BASE_URL`: Default `http://localhost:8000/v1` (vLLM server endpoint)
 - `VLLM_API_KEY`: Default `"EMPTY"` (vLLM doesn't require authentication)
 - `VLLM_MODEL`: Default `stelterlab/Mistral-Small-24B-Instruct-2501-AWQ`
-- `ZORAC_SESSION_FILE`: Optional - Custom session file location (defaults to `~/.zorac_session.json`)
+- `ZORAC_DIR`: Optional - Custom zorac directory (defaults to `~/.zorac`)
+- `ZORAC_SESSION_FILE`: Optional - Custom session file location (defaults to `~/.zorac/session.json`)
+- `ZORAC_HISTORY_FILE`: Optional - Custom history file location (defaults to `~/.zorac/history`)
+- `ZORAC_CONFIG_FILE`: Optional - Custom config file location (defaults to `~/.zorac/config.json`)
 
-### Token Limits
-- `MAX_INPUT_TOKENS`: `12000` - Max tokens for system prompt + chat history
-- `MAX_OUTPUT_TOKENS`: `4000` - Max tokens for model responses
-- `KEEP_RECENT_MESSAGES`: `6` - Messages preserved during auto-summarization
+**Configuration Priority**: Environment Variable > Config File (`~/.zorac/config.json`) > Default Value
 
-### Model Parameters (in API calls)
-- **Temperature**: `0.1` (deterministic responses)
-- **Streaming**: `stream=True` (real-time token display with live markdown rendering)
-- **Max Tokens**: `4000` (maximum response length)
+### Token Limits (Configurable)
+- `MAX_INPUT_TOKENS`: Default `12000` - Max tokens for system prompt + chat history
+- `MAX_OUTPUT_TOKENS`: Default `4000` - Max tokens for model responses
+- `KEEP_RECENT_MESSAGES`: Default `6` - Messages preserved during auto-summarization
+
+### Model Parameters (Configurable)
+- `TEMPERATURE`: Default `0.1` - Controls randomness (0.0-2.0, lower = more deterministic)
+- `STREAM`: Default `true` - Enable/disable real-time token streaming with live markdown rendering
+
+**Note**: All token limits and model parameters can be configured via:
+1. Environment variables in `.env` file
+2. Runtime configuration in `~/.zorac/config.json`
+3. The `/config` command during a chat session
 
 ## Development Commands
 
@@ -98,15 +136,33 @@ cp .env.example .env
 # Run with Make
 make run
 
-# Or run with uv (uses .env file)
-uv run zorac.py
+# Or run as Python module
+uv run python -m zorac
+
+# Or run via console script (after installation)
+uv run zorac
 
 # Or activate venv and run directly
 source .venv/bin/activate
-python zorac.py
+zorac
 
 # You can also override .env settings via environment variables
-VLLM_BASE_URL="http://your-server:8000/v1" uv run zorac.py
+VLLM_BASE_URL="http://your-server:8000/v1" uv run zorac
+```
+
+### Installation as a CLI Tool
+```bash
+# Install globally (recommended)
+uv tool install .
+
+# Upgrade after pulling changes
+uv tool upgrade zorac
+
+# Uninstall
+uv tool uninstall zorac
+
+# Remove all data (optional)
+rm -rf ~/.zorac
 ```
 
 ### Testing & Quality Assurance
@@ -162,6 +218,10 @@ The test suite covers:
 - `/tokens` - Display current token usage, limits, and remaining capacity
 - `/summarize` - Force summarization of conversation history (even if below token limit)
 - `/summary` - Display the current conversation summary (if one exists)
+- `/config` - Manage configuration settings
+  - `/config list` - Show current configuration
+  - `/config set <KEY> <VALUE>` - Set a configuration value
+  - `/config get <KEY>` - Get a specific configuration value
 - `/quit` or `/exit` - Save and exit
 - `Ctrl+C` - Interrupt response (continues chat session)
 

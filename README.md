@@ -79,19 +79,6 @@ This application is optimized for `Mistral-Small-24B-Instruct-2501-AWQ`.
 - **Consumer Hardware Ready**: Using 4-bit AWQ quantization allows this powerful model to fit entirely within the 24GB VRAM of a single RTX 4090 or RTX 3090.
 - **High Performance**: The AWQ formulation with the Marlin kernel enables extremely fast inference (60-65 t/s), providing a responsive, real-time chat experience that heavier 70B models cannot match on single cards.
 
-## Zorac vs. Cloud LLM APIs
-
-| Feature | Zorac (Self-Hosted) | OpenAI API | Anthropic API |
-|---------|---------------------|------------|---------------|
-| Monthly cost | **$0** | ~$50-500+ | ~$50-500+ |
-| Privacy | ✅ Complete | ❌ Data sent to cloud | ❌ Data sent to cloud |
-| Latency | ✅ <100ms | ⚠️ 200-1000ms | ⚠️ 200-1000ms |
-| Works offline | ✅ Yes | ❌ Requires internet | ❌ Requires internet |
-| Rate limits | ✅ None | ⚠️ Yes | ⚠️ Yes |
-| Initial cost | ~$1600 (GPU) | $0 | $0 |
-| Model variety | ⚠️ One at a time | ✅ Multiple models | ✅ Multiple models |
-| Best for | Privacy, experimentation, unlimited use | Production, variety | Production, quality |
-
 ## Quick Start
 
 For detailed instructions on setting up the vLLM inference server, please refer to [SERVER_SETUP.md](SERVER_SETUP.md).
@@ -126,11 +113,15 @@ cp .env.example .env
 ### Running the Client
 
 ```bash
-# Activate the virtual environment (optional if using uv run)
-# source .venv/bin/activate
+# Run using uv (as a module)
+uv run python -m zorac
 
-# Run using uv
-uv run zorac.py
+# Or run via the console script
+uv run zorac
+
+# Or activate the virtual environment and run directly
+source .venv/bin/activate
+zorac
 ```
 
 ### CLI Installation (Optional)
@@ -169,6 +160,21 @@ git pull
 uv tool upgrade zorac
 ```
 
+### Uninstalling
+
+To remove Zorac from your system:
+
+```bash
+# If installed with uv tool
+uv tool uninstall zorac
+
+# If installed with pip
+pip uninstall zorac
+
+# Optional: Remove configuration and session data
+rm -rf ~/.zorac
+```
+
 ## Usage
 
 ### Basic Interaction
@@ -190,6 +196,7 @@ Assistant: [Response...]
 | `/tokens` | Display current token usage and limits |
 | `/summarize` | Force summarization of conversation history |
 | `/summary` | Display the current conversation summary (if exists) |
+| `/config` | Manage configuration settings (list, set, get) |
 | `/quit` or `/exit` | Save session and exit |
 | `Ctrl+C` | Interrupt current operation without exiting |
 
@@ -197,7 +204,7 @@ Assistant: [Response...]
 
 ```bash
 # Start the chat client
-$ uv run zorac.py
+$ uv run zorac
 
 # Ask questions naturally
 You: Explain how Python async/await works
@@ -227,43 +234,77 @@ VLLM_BASE_URL=http://localhost:8000/v1  # Change to your vLLM server URL
 VLLM_API_KEY=EMPTY
 VLLM_MODEL=stelterlab/Mistral-Small-24B-Instruct-2501-AWQ
 
-# Optional: Custom session file location
+# Token Limits (optional - defaults shown)
+# MAX_INPUT_TOKENS=12000
+# MAX_OUTPUT_TOKENS=4000
+# KEEP_RECENT_MESSAGES=6
+
+# Model Parameters (optional - defaults shown)
+# TEMPERATURE=0.1
+# STREAM=true
+
+# Optional: Custom paths
+# ZORAC_DIR=/path/to/custom/zorac/directory
 # ZORAC_SESSION_FILE=/path/to/custom/session.json
+# ZORAC_HISTORY_FILE=/path/to/custom/history
+# ZORAC_CONFIG_FILE=/path/to/custom/config.json
 ```
 
 You can also override settings using environment variables:
 
 ```bash
 # Override .env settings
-VLLM_BASE_URL="http://YOUR_SERVER_IP:8000/v1" uv run zorac.py
+VLLM_BASE_URL="http://YOUR_SERVER_IP:8000/v1" uv run zorac
 ```
 
-### Token Limits
+### Runtime Configuration
 
-Adjust these constants at the top of `zorac.py`:
+Zorac supports runtime configuration via the `/config` command:
 
-```python
-SESSION_FILE = Path.home() / ".zorac_session.json"  # Session storage location
-MAX_INPUT_TOKENS = 12000   # Maximum tokens for input (system + history)
-MAX_OUTPUT_TOKENS = 4000   # Maximum tokens for model responses
-KEEP_RECENT_MESSAGES = 6   # Messages to preserve during auto-summarization
+```bash
+# View current configuration
+You: /config list
+
+# Update server settings
+You: /config set VLLM_BASE_URL http://192.168.1.100:8000/v1
+
+# Adjust model parameters
+You: /config set TEMPERATURE 0.7
+You: /config set MAX_OUTPUT_TOKENS 2000
+You: /config set STREAM false
+
+# Get a specific setting
+You: /config get TEMPERATURE
 ```
 
-### Model Parameters
+Configuration priority: Environment Variables > Config File (`~/.zorac/config.json`) > Default Values
 
-```python
-temperature=0.1,      # Lower = more deterministic (0.0-2.0)
-max_tokens=4000,      # Maximum response length
-stream=True           # Real-time streaming with live markdown rendering
-```
+### Token Limits & Model Parameters
+
+All token limits and model parameters are now configurable via `.env` file, `~/.zorac/config.json`, or the `/config` command:
+
+**Token Limits:**
+- `MAX_INPUT_TOKENS` - Default: `12000` - Maximum tokens for input (system + history)
+- `MAX_OUTPUT_TOKENS` - Default: `4000` - Maximum tokens for model responses
+- `KEEP_RECENT_MESSAGES` - Default: `6` - Messages to preserve during auto-summarization
+
+**Model Parameters:**
+- `TEMPERATURE` - Default: `0.1` - Lower = more deterministic (range: 0.0-2.0)
+- `STREAM` - Default: `true` - Enable/disable real-time streaming with live markdown rendering
+
+**File Locations** (all configurable via environment variables):
+- Session: `~/.zorac/session.json`
+- History: `~/.zorac/history`
+- Config: `~/.zorac/config.json`
 
 ## How It Works
 
 ### Session Management
 
-1. **Auto-Save**: After each assistant response, the conversation is saved to `~/.zorac_session.json`
+1. **Auto-Save**: After each assistant response, the conversation is saved to `~/.zorac/session.json`
 2. **Auto-Load**: When you start the client, it automatically loads your previous session
 3. **Manual Control**: Use `/save` and `/load` commands for manual session management
+4. **Command History**: Terminal command history is persisted to `~/.zorac/history` using readline
 
 ### Token Management
 

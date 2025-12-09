@@ -1,8 +1,9 @@
 import json
+import os
 import tempfile
 import unittest
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, mock_open, patch
 
 from openai.types.chat import ChatCompletionMessageParam
 
@@ -15,8 +16,11 @@ from zorac import (
     VLLM_BASE_URL,
     VLLM_MODEL,
     count_tokens,
+    ensure_zorac_dir,
+    get_setting,
     load_session,
     print_header,
+    save_config,
     save_session,
     summarize_old_messages,
 )
@@ -153,14 +157,14 @@ class TestSessionManagement(unittest.TestCase):
 class TestPrintHeader(unittest.TestCase):
     """Test header printing functionality"""
 
-    @patch("zorac.console")
+    @patch("zorac.utils.console")
     def test_print_header_calls_console(self, mock_console):
         """Test that print_header calls console.print twice (logo + panel)"""
         print_header()
         # Should be called twice: once for logo, once for panel
         self.assertEqual(mock_console.print.call_count, 2)
 
-    @patch("zorac.console")
+    @patch("zorac.utils.console")
     def test_print_header_contains_url(self, mock_console):
         """Test that header contains the vLLM URL"""
         print_header()
@@ -170,7 +174,7 @@ class TestPrintHeader(unittest.TestCase):
         panel_text = str(panel.renderable)
         self.assertIn(VLLM_BASE_URL, panel_text)
 
-    @patch("zorac.console")
+    @patch("zorac.utils.console")
     def test_print_header_contains_model(self, mock_console):
         """Test that header contains the model name"""
         print_header()
@@ -310,6 +314,52 @@ class TestConfiguration(unittest.TestCase):
         """Test that KEEP_RECENT_MESSAGES is a reasonable value"""
         self.assertGreater(KEEP_RECENT_MESSAGES, 2)
         self.assertLess(KEEP_RECENT_MESSAGES, 20)
+
+    def test_get_setting_priority(self):
+        """Test that get_setting prioritizes Env > Config > Default"""
+        key = "TEST_SETTING"
+        default = "default_value"
+
+        # 1. Default only
+        self.assertEqual(get_setting(key, default), default)
+
+        # 2. Config file
+        with patch("zorac.config.load_config", return_value={key: "config_value"}):
+            self.assertEqual(get_setting(key, default), "config_value")
+
+        # 3. Environment variable
+        with (
+            patch.dict(os.environ, {key: "env_value"}),
+            patch("zorac.config.load_config", return_value={key: "config_value"}),
+        ):
+            self.assertEqual(get_setting(key, default), "env_value")
+
+    @patch("zorac.config.CONFIG_FILE", new_callable=MagicMock)
+    @patch("zorac.config.ensure_zorac_dir")
+    def test_save_config_creates_dir(self, mock_ensure_dir, mock_config_path):
+        """Test that save_config calls ensure_zorac_dir"""
+        m = mock_open()
+        with patch("builtins.open", m):
+            save_config({"key": "value"})
+            mock_ensure_dir.assert_called_once()
+
+
+class TestDirectoryManagement(unittest.TestCase):
+    """Test directory creation logic"""
+
+    @patch("zorac.config.ZORAC_DIR")
+    def test_ensure_zorac_dir_creates_if_missing(self, mock_dir):
+        """Test that ensure_zorac_dir creates directory if it doesn't exist"""
+        mock_dir.exists.return_value = False
+        ensure_zorac_dir()
+        mock_dir.mkdir.assert_called_once_with(parents=True, exist_ok=True)
+
+    @patch("zorac.config.ZORAC_DIR")
+    def test_ensure_zorac_dir_does_nothing_if_exists(self, mock_dir):
+        """Test that ensure_zorac_dir does nothing if directory exists"""
+        mock_dir.exists.return_value = True
+        ensure_zorac_dir()
+        mock_dir.mkdir.assert_not_called()
 
 
 class TestIntegration(unittest.TestCase):

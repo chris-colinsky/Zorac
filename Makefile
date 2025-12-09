@@ -42,7 +42,7 @@ format-check: ## Check code formatting without changing files
 	uv run ruff format --check .
 
 type-check: ## Run type checker (mypy)
-	uv run mypy zorac.py
+	uv run mypy zorac/
 
 pre-commit-install: ## Install pre-commit hooks
 	uv run pre-commit install
@@ -64,7 +64,7 @@ clean: ## Remove generated files and caches
 	find . -type f -name '*.pyo' -delete
 
 run: ## Run the application
-	uv run zorac.py
+	uv run zorac
 
 all-checks: lint type-check test ## Run all checks (lint, type-check, test)
 	@echo ""
@@ -95,11 +95,13 @@ dev-setup: install-dev pre-commit-install ## Complete development setup
 stats: ## Show project statistics
 	@echo "Project Statistics:"
 	@echo "==================="
-	@echo -n "Lines of code (zorac.py): "
-	@wc -l zorac.py | awk '{print $$1}'
-	@echo -n "Lines of tests: "
+	@printf "Lines of code (zorac/): "
+	@find zorac -name "*.py" -exec wc -l {} + | tail -1 | awk '{print $$1}'
+	@printf "Lines of tests: "
 	@wc -l tests/*.py | tail -1 | awk '{print $$1}'
-	@echo -n "Test files: "
-	@ls tests/test_*.py | wc -l
-	@echo -n "Python version: "
+	@printf "Test files: "
+	@ls tests/test_*.py 2>/dev/null | wc -l | awk '{print $$1}'
+	@printf "Python modules: "
+	@find zorac -name "*.py" | wc -l | awk '{print $$1}'
+	@printf "Python version: "
 	@cat .python-version

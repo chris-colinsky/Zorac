@@ -46,11 +46,19 @@ Enhancement suggestions are welcome! Please open an issue with:
 git clone https://github.com/chris-colinsky/zorac.git
 cd zorac
 
-# Install dependencies
-uv sync
+# Install development dependencies (includes pytest, ruff, mypy, etc.)
+uv sync --extra dev
+
+# Install pre-commit hooks
+make pre-commit-install
+
+# Or use the shorthand for complete setup
+make dev-setup
 
 # Run the application
-uv run main.py
+make run
+# or
+uv run zorac
 ```
 
 ## Code Style
@@ -58,38 +66,67 @@ uv run main.py
 - Follow PEP 8 Python style guidelines
 - Use type hints where appropriate
 - Keep functions focused and well-documented
-- Maintain the single-file architecture unless there's a compelling reason to split
+- Run linter before committing: `make lint-fix`
+- Format code with ruff: `make format`
+- Run type checker: `make type-check`
 
 ## Project Structure
 
-This is intentionally a single-file application (`main.py`) for simplicity. Major architectural changes should be discussed in an issue first.
+Zorac is organized as a modular Python package:
+
+```
+zorac/
+├── __init__.py      # Package exports and public API
+├── __main__.py      # Entry point for python -m zorac
+├── config.py        # Configuration management
+├── console.py       # Rich console singleton
+├── llm.py          # LLM operations and summarization
+├── main.py         # Main event loop and CLI
+├── session.py      # Session persistence
+└── utils.py        # Utility functions
+```
+
+Major architectural changes should be discussed in an issue first.
 
 ## Testing
 
-Currently, this project doesn't have automated tests. Contributions that add testing infrastructure are welcome!
+This project has comprehensive automated tests. Please add tests for new features.
+
+```bash
+# Run all tests
+make test
+
+# Run tests with coverage
+make test-coverage
+
+# Run all quality checks (lint + type-check + test)
+make all-checks
+```
 
 Manual testing checklist:
 - [ ] Application starts without errors
 - [ ] Can connect to vLLM server
 - [ ] Chat responses work correctly
-- [ ] All commands work (`/clear`, `/save`, `/load`, `/tokens`, `/quit`)
+- [ ] All commands work (`/clear`, `/save`, `/load`, `/tokens`, `/summarize`, `/summary`, `/config`, `/quit`)
 - [ ] Session persistence works
 - [ ] Auto-summarization triggers correctly
 - [ ] Token counting displays accurately
 - [ ] Environment variables are respected
+- [ ] Runtime configuration via `/config` works
+- [ ] Command history persists across sessions
 
 ## Areas for Contribution
 
 Some ideas for contributions:
-- **Streaming responses**: Implement real-time token streaming
-- **Configuration file**: Support for `.env` or config file
-- **Better error handling**: Improved error messages and recovery
-- **Tests**: Unit tests and integration tests
-- **Color output**: Syntax highlighting for responses
 - **History search**: Search through conversation history
-- **Multiple model support**: Easy switching between models
+- **Multiple model support**: Easy switching between models in runtime
 - **Session management**: Named sessions, session list/search
 - **Performance improvements**: Optimize token counting or caching
+- **Enhanced configuration**: Web UI for configuration management
+- **Export functionality**: Export conversations to markdown/PDF
+- **Plugin system**: Allow custom commands and extensions
+- **Better error recovery**: More resilient connection handling
+- **Conversation analytics**: Statistics about token usage over time
 
 ## Questions?
 
