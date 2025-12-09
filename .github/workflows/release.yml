@@ -43,7 +43,8 @@ jobs:
           uv sync
           uv pip install pyinstaller
 
-      - name: Build binary with PyInstaller
+      - name: Build binary with PyInstaller (Unix)
+        if: runner.os != 'Windows'
         run: |
           uv run pyinstaller --onefile --name ${{ matrix.binary_name }} \
             --add-data "zorac:zorac" \
@@ -52,6 +53,11 @@ jobs:
             --collect-data tiktoken \
             --collect-data rich \
             zorac/__main__.py
+
+      - name: Build binary with PyInstaller (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          uv run pyinstaller --onefile --name ${{ matrix.binary_name }} --add-data "zorac;zorac" --hidden-import tiktoken_ext.openai_public --hidden-import tiktoken_ext --collect-data tiktoken --collect-data rich zorac/__main__.py
 
       - name: Test binary (Unix)
         if: runner.os != 'Windows'
