@@ -47,17 +47,24 @@ jobs:
         if: runner.os != 'Windows'
         run: |
           uv run pyinstaller --onefile --name ${{ matrix.binary_name }} \
-            --add-data "zorac:zorac" \
+            --add-data "zorac/*.py:zorac" \
             --hidden-import tiktoken_ext.openai_public \
             --hidden-import tiktoken_ext \
+            --hidden-import zorac \
+            --hidden-import zorac.main \
+            --hidden-import zorac.config \
+            --hidden-import zorac.console \
+            --hidden-import zorac.llm \
+            --hidden-import zorac.session \
+            --hidden-import zorac.utils \
             --collect-data tiktoken \
             --collect-data rich \
-            zorac/__main__.py
+            run_zorac.py
 
       - name: Build binary with PyInstaller (Windows)
         if: runner.os == 'Windows'
         run: |
-          uv run pyinstaller --onefile --name ${{ matrix.binary_name }} --add-data "zorac;zorac" --hidden-import tiktoken_ext.openai_public --hidden-import tiktoken_ext --collect-data tiktoken --collect-data rich zorac/__main__.py
+          uv run pyinstaller --onefile --name ${{ matrix.binary_name }} --add-data "zorac/*.py;zorac" --hidden-import tiktoken_ext.openai_public --hidden-import tiktoken_ext --hidden-import zorac --hidden-import zorac.main --hidden-import zorac.config --hidden-import zorac.console --hidden-import zorac.llm --hidden-import zorac.session --hidden-import zorac.utils --collect-data tiktoken --collect-data rich run_zorac.py
 
       - name: Test binary (Unix)
         if: runner.os != 'Windows'
