@@ -34,28 +34,13 @@ chmod +x zorac-macos-arm64
 ./zorac-macos-arm64
 ```
 
-### Windows (x86_64)
-
-1. Download `zorac-windows-x86_64.exe` from the [releases page](https://github.com/chris-colinsky/Zorac/releases/latest)
-2. Double-click to run, or from Command Prompt/PowerShell:
-```cmd
-zorac-windows-x86_64.exe
-```
+**Windows Users:** Use [WSL (Windows Subsystem for Linux)](https://learn.microsoft.com/en-us/windows/wsl/install) and follow the Linux instructions above.
 
 ### Optional: Add to PATH
 
-**Linux/macOS:**
 ```bash
+# Linux/macOS
 sudo mv zorac-* /usr/local/bin/zorac
-
-# Then run from anywhere:
-zorac
-```
-
-**Windows (run as Administrator in PowerShell):**
-```powershell
-# Move to a permanent location first, then add to PATH
-Move-Item zorac-windows-x86_64.exe C:\Windows\System32\zorac.exe
 
 # Then run from anywhere:
 zorac
@@ -88,7 +73,7 @@ uv run python -m zorac
 uv run zorac
 
 # Or activate the virtual environment and run directly
-source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+source .venv/bin/activate
 zorac
 ```
 

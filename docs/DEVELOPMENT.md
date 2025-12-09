@@ -261,9 +261,11 @@ git push origin main --tags
 ```
 
 This triggers the workflow in `.github/workflows/release.yml` which:
-1. Builds binaries for Linux, macOS, and Windows
+1. Builds binaries for Linux and macOS
 2. Creates a GitHub release
 3. Attaches binaries to the release
+
+**Note:** Windows is not officially supported. Windows users should use [WSL (Windows Subsystem for Linux)](https://learn.microsoft.com/en-us/windows/wsl/install).
 
 ## Making a Release
 
