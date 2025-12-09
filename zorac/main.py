@@ -1,6 +1,13 @@
 import atexit
-import readline
 import time
+
+try:
+    import readline
+
+    HAS_READLINE = True
+except ImportError:
+    # readline is not available on Windows
+    HAS_READLINE = False
 
 import tiktoken
 from openai import OpenAI
@@ -33,6 +40,9 @@ from .utils import check_connection, count_tokens, print_header
 
 def setup_readline():
     """Setup command history and persistent storage"""
+    if not HAS_READLINE:
+        return
+
     try:
         ensure_zorac_dir()
         if HISTORY_FILE.exists():
