@@ -2,6 +2,9 @@ name: Build and Release
 
 on:
   push:
+    branches:
+      - 'v*'  # Trigger on version branches like v1.0.0
+      - 'release/*'  # Trigger on release branches
     tags:
       - 'v*'  # Trigger on version tags like v1.0.0
   workflow_dispatch:  # Allow manual trigger
@@ -70,6 +73,7 @@ jobs:
     name: Create GitHub Release
     needs: build-binaries
     runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')  # Only create release for tags
     permissions:
       contents: write
 

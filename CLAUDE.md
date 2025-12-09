@@ -49,6 +49,7 @@ When users ask about installation, configuration, or usage, refer them to the ap
   - **CONFIGURATION.md**: Configuration guide (server, token limits, model parameters)
   - **USAGE.md**: Usage guide (commands, session management, tips & tricks)
   - **DEVELOPMENT.md**: Development guide (testing, contributing, building binaries)
+  - **SERVER_SETUP.md**: vLLM server setup and hardware optimization guide
 - **.github/workflows/**: CI/CD automation
   - **release.yml**: Automated binary builds and GitHub releases
 - **.env**: Configuration file for server settings (not committed to git)
