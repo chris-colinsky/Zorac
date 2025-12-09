@@ -14,6 +14,22 @@ Interactive CLI chat client for a vLLM inference server running on local homelab
 
 **SEO Focus:** Documentation is optimized for discoverability by developers searching for "self-hosted LLM", "local AI", "ChatGPT alternative", "vLLM tutorial", and related terms.
 
+## Documentation Structure
+
+Zorac uses a modular documentation structure:
+
+- **README.md** - Project overview, quick start, and navigation hub
+- **docs/INSTALLATION.md** - Complete installation guide for all methods
+- **docs/CONFIGURATION.md** - Configuration reference and examples
+- **docs/USAGE.md** - Interactive commands and session management
+- **docs/DEVELOPMENT.md** - Contributing, testing, and building
+- **docs/SERVER_SETUP.md** - vLLM server setup and optimization
+- **CLAUDE.md** - This file - AI assistant development guide
+- **CHANGELOG.md** - Version history and release notes
+- **CONTRIBUTING.md** - Contribution guidelines
+
+When users ask about installation, configuration, or usage, refer them to the appropriate docs/ file.
+
 ## File Structure
 
 - **zorac/**: Main package directory containing the application modules
@@ -28,13 +44,23 @@ Interactive CLI chat client for a vLLM inference server running on local homelab
 - **tests/**: Comprehensive test suite with 28 test cases
   - **test_zorac.py**: Unit and integration tests
   - **__init__.py**: Test package marker
+- **docs/**: User and developer documentation
+  - **INSTALLATION.md**: Complete installation guide (binary, source, development)
+  - **CONFIGURATION.md**: Configuration guide (server, token limits, model parameters)
+  - **USAGE.md**: Usage guide (commands, session management, tips & tricks)
+  - **DEVELOPMENT.md**: Development guide (testing, contributing, building binaries)
+- **.github/workflows/**: CI/CD automation
+  - **release.yml**: Automated binary builds and GitHub releases
 - **.env**: Configuration file for server settings (not committed to git)
 - **.env.example**: Example configuration template
 - **Makefile**: Development commands for testing, linting, formatting
 - **.pre-commit-config.yaml**: Pre-commit hooks configuration
-- **SERVER_SETUP.md**: Complete self-hosting guide with hardware optimization
-- **README.md**: User documentation optimized for SEO/discoverability
+- **run_zorac.py**: Entry point script for PyInstaller binary builds
+- **zorac.spec**: PyInstaller specification for binary packaging
+- **README.md**: Project overview and navigation hub
+- **CHANGELOG.md**: Version history and release notes
 - **CONTRIBUTING.md**: Contribution guidelines and development workflow
+- **CLAUDE.md**: This file - AI assistant development guide
 - **pyproject.toml**: Project metadata, dependencies, and tool configurations (managed by `uv`)
 - **.python-version**: Python 3.13 (pinned)
 
@@ -227,7 +253,7 @@ The test suite covers:
 
 ## vLLM Server Setup
 
-For server configuration details, see **SERVER_SETUP.md**. Key points:
+For server configuration details, see **docs/SERVER_SETUP.md**. Key points:
 
 - **Hardware**: RTX 4090 (24GB VRAM)
 - **Quantization**: AWQ with Marlin kernel (`--quantization awq_marlin`)
@@ -270,7 +296,7 @@ The project documentation is optimized for search engines and AI answer engines 
 - Comprehensive FAQ answering common questions
 - "Also Useful For" section expanding use case coverage
 
-**SERVER_SETUP.md Strategy:**
+**docs/SERVER_SETUP.md Strategy:**
 - Beginner-friendly intro emphasizing "$0/month" and "complete privacy"
 - Targets tutorial-seeking users ("how to host LLM locally")
 - Mentions multiple GPU models for broader hardware search coverage

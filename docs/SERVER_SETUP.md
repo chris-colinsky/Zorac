@@ -171,4 +171,3 @@ sudo nvidia-smi -lgc 2100,2900
 
 ## 7. Client Usage
 For instructions on how to use the interactive chat client, please refer to [README.md](README.md).
-

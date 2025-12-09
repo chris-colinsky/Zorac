@@ -8,7 +8,7 @@
 
 A fun terminal chat client for running **local LLMs on consumer hardware**. Chat with powerful AI models like Mistral-24B privately on your own RTX 4090/3090 - no cloud, no costs, complete privacy.
 
-Perfect for developers who want a **self-hosted ChatGPT alternative** running on their gaming PC or homelab server.  Also good for local AI coding assistants, agentic workflows and agent development.
+Perfect for developers who want a **self-hosted ChatGPT alternative** running on their gaming PC or homelab server. Also good for local AI coding assistants, agentic workflows and agent development.
 
 > Named after ZORAC, the intelligent Ganymean computer from James P. Hogan's *The Gentle Giants of Ganymede*.
 
@@ -30,8 +30,7 @@ Perfect for developers who want a **self-hosted ChatGPT alternative** running on
 - **Smart Context Management** - Automatically summarizes old messages when approaching token limits
 - **Token Tracking** - Real-time monitoring of token usage with tiktoken
 - **Performance Metrics** - Displays tokens/second, response time, and resource usage
-- **Session Commands** - Save, load, and manage conversation history
-- **Auto-Recovery** - Graceful error handling keeps the chat running
+- **Configurable** - Adjust all parameters via `.env`, config file, or runtime commands
 
 ## Demo
 
@@ -47,6 +46,71 @@ Perfect for developers who want a **self-hosted ChatGPT alternative** running on
 
 *Built-in commands for session management and token tracking*
 
+## Quick Start
+
+### 1. Download Binary (Easiest)
+
+Download from the [latest release](https://github.com/chris-colinsky/Zorac/releases/latest) - no Python required!
+
+```bash
+# Linux
+wget https://github.com/chris-colinsky/Zorac/releases/latest/download/zorac-linux-x86_64
+chmod +x zorac-linux-x86_64
+./zorac-linux-x86_64
+
+# macOS
+wget https://github.com/chris-colinsky/Zorac/releases/latest/download/zorac-macos-arm64
+chmod +x zorac-macos-arm64
+./zorac-macos-arm64
+
+# Windows - download zorac-windows-x86_64.exe and double-click
+```
+
+### 2. Set Up vLLM Server
+
+You need a vLLM inference server running. See [SERVER_SETUP.md](docs/SERVER_SETUP.md) for complete setup instructions.
+
+Quick server start (if already set up):
+
+```bash
+vllm serve stelterlab/Mistral-Small-24B-Instruct-2501-AWQ \
+  --quantization awq_marlin \
+  --dtype half \
+  --max-model-len 16384 \
+  --max-num-seqs 32
+```
+
+### 3. Configure & Run
+
+On first run, Zorac will create a config file at `~/.zorac/config.json`. Update your server URL:
+
+```bash
+# In Zorac, use the /config command
+You: /config set VLLM_BASE_URL http://YOUR_SERVER:8000/v1
+```
+
+Or create a `.env` file (if running from source):
+
+```bash
+VLLM_BASE_URL=http://localhost:8000/v1
+```
+
+## Documentation
+
+### User Guides
+
+- **[Installation Guide](docs/INSTALLATION.md)** - All installation methods (binary, source, development)
+- **[Configuration Guide](docs/CONFIGURATION.md)** - Server setup, token limits, model parameters
+- **[Usage Guide](docs/USAGE.md)** - Commands, session management, tips & tricks
+
+### Technical Documentation
+
+- **[Development Guide](docs/DEVELOPMENT.md)** - Contributing, testing, building binaries
+- **[Server Setup](docs/SERVER_SETUP.md)** - Complete vLLM server installation and optimization
+- **[Claude.md](CLAUDE.md)** - AI assistant development guide
+- **[Changelog](CHANGELOG.md)** - Version history and release notes
+- **[Contributing](CONTRIBUTING.md)** - Contribution guidelines
+
 ## Supported Hardware
 
 This works on **consumer gaming GPUs**:
@@ -60,7 +124,7 @@ This works on **consumer gaming GPUs**:
 | RTX 4070 Ti | 12GB | Up to 7B (AWQ) | 40-45 tok/s |
 | RTX 3080 | 10GB | Up to 7B (AWQ) | 35-40 tok/s |
 
-⭐ Recommended configuration. See [SERVER_SETUP.md](SERVER_SETUP.md) for optimization details.
+⭐ Recommended configuration. See [SERVER_SETUP.md](docs/SERVER_SETUP.md) for optimization details.
 
 ## Use Cases
 
@@ -71,535 +135,101 @@ This works on **consumer gaming GPUs**:
 - 🔬 **AI experimentation** - Test prompts and models without API costs
 - 🎓 **Learning AI/ML** - Understand LLM inference without cloud dependencies
 
-## Why This Model?
+## Why Mistral-Small-24B-AWQ?
 
-This application is optimized for `Mistral-Small-24B-Instruct-2501-AWQ`.
+This application is optimized for `Mistral-Small-24B-Instruct-2501-AWQ`:
 
-- **Superior Intelligence**: At 24 billion parameters, it offers significantly better reasoning and instruction following than standard 7B/8B models, making it ideal for complex agentic workflows.
-- **Consumer Hardware Ready**: Using 4-bit AWQ quantization allows this powerful model to fit entirely within the 24GB VRAM of a single RTX 4090 or RTX 3090.
-- **High Performance**: The AWQ formulation with the Marlin kernel enables extremely fast inference (60-65 t/s), providing a responsive, real-time chat experience that heavier 70B models cannot match on single cards.
+- **Superior Intelligence** - 24B parameters offers significantly better reasoning than 7B/8B models
+- **Consumer Hardware Ready** - 4-bit AWQ quantization fits in 24GB VRAM
+- **High Performance** - AWQ with Marlin kernel enables 60-65 tok/s on RTX 4090
 
-## Quick Start
+You can use any vLLM-compatible model by changing the `VLLM_MODEL` setting.
 
-For detailed instructions on setting up the vLLM inference server, please refer to [SERVER_SETUP.md](SERVER_SETUP.md).
-
-### Prerequisites
-
-This project uses `uv` for dependency management. You must have `uv` installed.
+## Example Session
 
 ```bash
-# Install uv (if not already installed)
-curl -LsSf https://astral.sh/uv/install.sh | sh
+$ zorac
+✓ Loaded previous session (4 messages, ~892 tokens)
 
-# Or using Homebrew (macOS/Linux)
-brew install uv
-```
+You: Explain async/await in Python
+Assistant: [Streams detailed explanation with code examples...]
+Stats: 342 tokens in 5.2s (65.8 tok/s) | Total: 6 msgs | Tokens: ~1234/12000
 
-### Installation
-
-```bash
-# Clone the repository
-git clone https://github.com/chris-colinsky/zorac.git
-cd zorac
-
-# Install dependencies (uv will automatically create a virtual environment)
-uv sync
-
-# Copy the example .env file and configure your server
-cp .env.example .env
-# Edit .env to set your vLLM server URL
-```
-
-### Running the Client
-
-```bash
-# Run using uv (as a module)
-uv run python -m zorac
-
-# Or run via the console script
-uv run zorac
-
-# Or activate the virtual environment and run directly
-source .venv/bin/activate
-zorac
-```
-
-### Binary Installation (Recommended for End Users)
-
-Download pre-built binaries from the [latest release](https://github.com/chris-colinsky/Zorac/releases/latest). No Python installation required!
-
-```bash
-# Linux (x86_64)
-wget https://github.com/chris-colinsky/Zorac/releases/latest/download/zorac-linux-x86_64
-chmod +x zorac-linux-x86_64
-./zorac-linux-x86_64
-
-# macOS (ARM64)
-wget https://github.com/chris-colinsky/Zorac/releases/latest/download/zorac-macos-arm64
-chmod +x zorac-macos-arm64
-./zorac-macos-arm64
-```
-
-**Windows (x86_64):**
-1. Download `zorac-windows-x86_64.exe` from the [releases page](https://github.com/chris-colinsky/Zorac/releases/latest)
-2. Double-click to run, or from Command Prompt/PowerShell:
-```cmd
-zorac-windows-x86_64.exe
-```
-
-**Optional: Add to PATH**
-
-```bash
-# Linux/macOS
-sudo mv zorac-* /usr/local/bin/zorac
-
-# Then run from anywhere:
-zorac
-```
-
-```powershell
-# Windows (run as Administrator in PowerShell)
-# Move to a permanent location first, then add to PATH
-Move-Item zorac-windows-x86_64.exe C:\Windows\System32\zorac.exe
-
-# Then run from anywhere:
-zorac
-```
-
-### CLI Installation (For Developers)
-
-You can install Zorac globally as a command-line tool from source:
-
-```bash
-# Using uv (Recommended)
-uv tool install .
-
-# Using pip
-pip install .
-
-# Then run from anywhere:
-zorac
-```
-
-### Quick Run (uvx)
-
-If you just want to run Zorac without installing it (ephemeral execution):
-
-```bash
-# Run directly from the current directory
-uvx --from . zorac
-```
-
-### Upgrading
-
-If you've installed Zorac via `uv tool` and pulled new changes:
-
-```bash
-# Pull latest changes
-git pull
-
-# Upgrade the installed tool
-uv tool upgrade zorac
-```
-
-### Uninstalling
-
-To remove Zorac from your system:
-
-```bash
-# If installed with uv tool
-uv tool uninstall zorac
-
-# If installed with pip
-pip uninstall zorac
-
-# Optional: Remove configuration and session data
-rm -rf ~/.zorac
-```
-
-## Usage
-
-### Basic Interaction
-
-Simply type your message at the `You:` prompt and press Enter. The assistant will respond, and the conversation will be automatically saved.
-
-```
-You: Explain quantum entanglement
-Assistant: [Response...]
-```
-
-### Available Commands
-
-| Command | Description |
-|---------|-------------|
-| `/clear` | Clear conversation history and start fresh |
-| `/save` | Manually save the current session |
-| `/load` | Reload session from disk |
-| `/tokens` | Display current token usage and limits |
-| `/summarize` | Force summarization of conversation history |
-| `/summary` | Display the current conversation summary (if exists) |
-| `/config` | Manage configuration settings (list, set, get) |
-| `/quit` or `/exit` | Save session and exit |
-| `Ctrl+C` | Interrupt current operation without exiting |
-
-### Example Usage
-
-```bash
-# Start the chat client
-$ uv run zorac
-
-# Ask questions naturally
-You: Explain how Python async/await works
-
-# Get streaming responses with markdown formatting
-Assistant: [Streams formatted response with code examples...]
-Stats: 245 tokens in 3.8s (64.5 tok/s) | Total: 4 msgs | Tokens: 312/12000
-
-# Use commands for session management
 You: /tokens
-Current: 312 tokens | Limit: 12000 | Remaining: 11688
+Current: ~1234 tokens | Limit: 12000 | Remaining: ~10766
+
+You: /config set TEMPERATURE 0.8
+✓ Updated TEMPERATURE in ~/.zorac/config.json
 
 You: /quit
-Session saved. Goodbye!
+✓ Session saved. Goodbye!
 ```
-
-
-## Configuration
-
-### Server Configuration
-
-The client uses a `.env` file for configuration. After installation, copy `.env.example` to `.env` and customize:
-
-```bash
-# .env file
-VLLM_BASE_URL=http://localhost:8000/v1  # Change to your vLLM server URL
-VLLM_API_KEY=EMPTY
-VLLM_MODEL=stelterlab/Mistral-Small-24B-Instruct-2501-AWQ
-
-# Token Limits (optional - defaults shown)
-# MAX_INPUT_TOKENS=12000
-# MAX_OUTPUT_TOKENS=4000
-# KEEP_RECENT_MESSAGES=6
-
-# Model Parameters (optional - defaults shown)
-# TEMPERATURE=0.1
-# STREAM=true
-
-# Optional: Custom paths
-# ZORAC_DIR=/path/to/custom/zorac/directory
-# ZORAC_SESSION_FILE=/path/to/custom/session.json
-# ZORAC_HISTORY_FILE=/path/to/custom/history
-# ZORAC_CONFIG_FILE=/path/to/custom/config.json
-```
-
-You can also override settings using environment variables:
-
-```bash
-# Override .env settings
-VLLM_BASE_URL="http://YOUR_SERVER_IP:8000/v1" uv run zorac
-```
-
-### Runtime Configuration
-
-Zorac supports runtime configuration via the `/config` command:
-
-```bash
-# View current configuration
-You: /config list
-
-# Update server settings
-You: /config set VLLM_BASE_URL http://192.168.1.100:8000/v1
-
-# Adjust model parameters
-You: /config set TEMPERATURE 0.7
-You: /config set MAX_OUTPUT_TOKENS 2000
-You: /config set STREAM false
-
-# Get a specific setting
-You: /config get TEMPERATURE
-```
-
-Configuration priority: Environment Variables > Config File (`~/.zorac/config.json`) > Default Values
-
-### Token Limits & Model Parameters
-
-All token limits and model parameters are now configurable via `.env` file, `~/.zorac/config.json`, or the `/config` command:
-
-**Token Limits:**
-- `MAX_INPUT_TOKENS` - Default: `12000` - Maximum tokens for input (system + history)
-- `MAX_OUTPUT_TOKENS` - Default: `4000` - Maximum tokens for model responses
-- `KEEP_RECENT_MESSAGES` - Default: `6` - Messages to preserve during auto-summarization
-
-**Model Parameters:**
-- `TEMPERATURE` - Default: `0.1` - Lower = more deterministic (range: 0.0-2.0)
-- `STREAM` - Default: `true` - Enable/disable real-time streaming with live markdown rendering
-
-**File Locations** (all configurable via environment variables):
-- Session: `~/.zorac/session.json`
-- History: `~/.zorac/history`
-- Config: `~/.zorac/config.json`
-
-## How It Works
-
-### Session Management
-
-1. **Auto-Save**: After each assistant response, the conversation is saved to `~/.zorac/session.json`
-2. **Auto-Load**: When you start the client, it automatically loads your previous session
-3. **Manual Control**: Use `/save` and `/load` commands for manual session management
-4. **Command History**: Terminal command history is persisted to `~/.zorac/history` using readline
-
-### Token Management
-
-The client uses `tiktoken` to accurately count tokens in your conversation:
-
-- Monitors total token count in real-time
-- Displays usage after each response
-- Prevents exceeding model context limits
-
-### Automatic Summarization
-
-When your conversation exceeds `MAX_INPUT_TOKENS`:
-
-1. The client automatically triggers summarization
-2. Older messages are condensed into a summary
-3. The most recent 6 messages are preserved intact
-4. The summary is injected as a system message
-5. This maintains context while staying within limits
-
-Example:
-```
-� Token limit approaching. Summarizing conversation history...
- Summarized 15 messages. Kept 6 recent messages.
-```
-
-## Performance Metrics
-
-After each response, the client displays:
-
-- **Completion tokens**: Number of tokens in the response
-- **Response time**: How long generation took
-- **Tokens/second**: Generation speed (TPS)
-- **Total messages**: Conversation length
-- **Token usage**: Current usage vs. limit
-
-```
-Stats: 147 tokens in 2.34s (62.82 tok/s) | Total msgs: 12 | Tokens: ~3421/12000
-```
-
-## Development
-
-### Testing & Quality
-
-This project includes comprehensive testing, linting, and formatting tools:
-
-```bash
-# Install development dependencies
-make install-dev
-
-# Run all tests
-make test
-
-# Run tests with coverage report
-make test-coverage
-
-# Run linter
-make lint
-
-# Auto-fix linting issues
-make lint-fix
-
-# Format code
-make format
-
-# Type checking
-make type-check
-
-# Run all checks (lint + type-check + test)
-make all-checks
-
-# Complete development setup
-make dev-setup
-```
-
-**Test Coverage:**
-- Unit tests for all core functions
-- Integration tests for save/load workflows
-- Mock-based testing for API interactions
-- 30+ test cases covering edge cases
-
-**Code Quality Tools:**
-- **pytest**: Testing framework with coverage reporting
-- **ruff**: Fast Python linter and formatter
-- **mypy**: Static type checker
-- **pre-commit**: Git hooks for automated quality checks
-
-### Project Structure
-
-```
-zorac/
-├── zorac.py             # Main application
-├── .env                 # Configuration (not in git)
-├── .env.example         # Configuration template
-├── pyproject.toml       # Dependencies and metadata
-├── uv.lock              # Dependency lock file
-├── README.md            # This file
-├── CLAUDE.md            # Development guide for AI assistants
-├── SERVER_SETUP.md      # vLLM server setup documentation
-├── LICENSE              # MIT License
-├── CONTRIBUTING.md      # Contribution guidelines
-└── .gitignore           # Git ignore patterns
-```
-
-### Dependencies
-
-- **openai** (>=2.8.1): Client library for vLLM's OpenAI-compatible API
-- **tiktoken** (>=0.8.0): Token counting for accurate usage tracking
-- **python-dotenv** (>=1.0.0): Environment variable management from .env files
-- **rich** (>=14.2.0): Rich terminal formatting, markdown rendering, and live updates
-
-### Key Functions
-
-- `count_tokens(messages)`: Counts tokens in conversation using tiktoken
-- `save_session(messages)`: Saves conversation to JSON file
-- `load_session()`: Loads conversation from JSON file
-- `print_header()`: Displays formatted welcome header with Rich panels
-- `summarize_old_messages(client, messages)`: Summarizes old messages when token limit is reached
-- `main()`: Main interactive loop with streaming responses and Rich UI
-
-### Adding Features
-
-The codebase is structured for easy extension:
-
-1. **New Commands**: Add to the command handling section in `main()`
-2. **Custom Token Limits**: Modify constants at the top of `zorac.py`
-3. **Different Models**: Update the model name in the API call
-4. **UI Customization**: Modify Rich console styling, colors, and panel formatting
-5. **Markdown Features**: Extend markdown rendering with custom Rich themes
-
-### AI-Friendly Documentation
-
-This project includes `CLAUDE.md`, a comprehensive development guide designed to help AI coding assistants (like Claude Code, GitHub Copilot, Cursor, etc.) understand the project architecture and conventions.
-
-**What it contains:**
-- Detailed project structure and file purposes
-- Architecture overview and design decisions
-- Configuration documentation
-- Development workflows and commands
-- Dependencies and their usage
-
-**Why it's useful:**
-If you're using AI-powered development tools, this file provides context that helps them give better suggestions, write code that matches project conventions, and understand the codebase structure. Human developers may also find it useful as comprehensive reference documentation.
-
-## Troubleshooting
-
-### Connection Issues
-
-```
-Error: Connection refused
-```
-
-**Solution**: Ensure your vLLM server is running and accessible at the configured URL.
-
-```bash
-# Test server connectivity
-curl http://localhost:8000/v1/models
-```
-
-### Token Errors
-
-```
-Error: context_length_exceeded
-```
-
-**Solution**: The auto-summarization should prevent this, but if it occurs:
-1. Use `/clear` to start fresh
-2. Reduce `MAX_INPUT_TOKENS` in the code
-3. Increase `KEEP_RECENT_MESSAGES` to preserve more context
-
-### Session File Issues
-
-```
-Error loading session: [Errno 2] No such file or directory
-```
-
-**Solution**: This is normal on first run. A new session file will be created automatically.
-
-To reset your session:
-```bash
-rm ~/.zorac_session.json
-```
-
-## Requirements
-
-- Python 3.13+
-- vLLM server running with OpenAI-compatible API
-- Network access to the vLLM server
-
-## License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## Contributing
-
-Contributions are welcome! Please feel free to submit issues, feature requests, or pull requests. See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
 ## FAQ
 
-### Can I run this without a GPU?
+<details>
+<summary><b>Can I run this without a GPU?</b></summary>
 
 No, this requires an NVIDIA GPU with at least 10GB VRAM. CPU-only inference is too slow for interactive chat (would take minutes per response).
+</details>
 
-### How does this compare to running Ollama?
+<details>
+<summary><b>How does this compare to running Ollama?</b></summary>
 
 Zorac uses vLLM for faster inference (60+ tok/s vs Ollama's 20-30 tok/s on the same hardware) and supports more advanced features like tool calling for agentic workflows. Ollama is easier to set up but slower for production use.
+</details>
 
-### Do I need to be online?
+<details>
+<summary><b>Do I need to be online?</b></summary>
 
 Only for the initial model download (~14GB for Mistral-24B-AWQ). After that, everything runs completely offline on your local machine.
+</details>
 
-### Is this legal? Can I use this commercially?
+<details>
+<summary><b>Is this legal? Can I use this commercially?</b></summary>
 
 Yes! Mistral-Small is Apache 2.0 licensed, which allows free commercial use. vLLM is also open source (Apache 2.0). No restrictions.
+</details>
 
-### What about AMD GPUs or Mac M-series chips?
+<details>
+<summary><b>What about AMD GPUs or Mac M-series chips?</b></summary>
 
 This guide is specifically for NVIDIA GPUs using CUDA. For AMD GPUs, you'd need ROCm support (experimental). For Mac M-series, check out MLX or llama.cpp instead.
+</details>
 
-### How much does it cost to run?
+<details>
+<summary><b>How much does it cost to run?</b></summary>
 
 Electricity cost for an RTX 4090 running at ~300W is roughly $0.05-0.10 per hour (depending on your electricity rates). Far cheaper than API costs for heavy usage.
+</details>
 
-### Can I use multiple GPUs?
+<details>
+<summary><b>What other models can I run?</b></summary>
 
-Yes! vLLM supports tensor parallelism across multiple GPUs. This lets you run larger models or increase throughput.
+Any model with vLLM support: Llama, Qwen, Phi, DeepSeek, etc. Just change the `VLLM_MODEL` setting. Check [vLLM's supported models](https://docs.vllm.ai/en/latest/models/supported_models.html).
+</details>
 
-### What other models can I run?
+## Requirements
 
-Any model with vLLM support: Llama, Qwen, Phi, DeepSeek, etc. Just change the `VLLM_MODEL` in your `.env` file. Check [vLLM's supported models](https://docs.vllm.ai/en/latest/models/supported_models.html).
+- **For Binary Users:** Nothing! Just download and run.
+- **For Source Users:** Python 3.13+, `uv` package manager
+- **For Server:** NVIDIA GPU with 10GB+ VRAM, vLLM inference server
 
-## Also Useful For
+## License
 
-- Testing prompts and AI workflows before committing to API costs
-- Running AI assistants on air-gapped or secure networks
-- Learning about LLM inference optimization and quantization
-- Building offline-first AI applications
-- AI development in regions with unreliable internet
-- Training teams on LLM usage without cloud dependencies
-- Prototyping agentic systems with LangChain/LangGraph
+MIT License - see [LICENSE](LICENSE) for details.
 
-## Tips
+## Contributing
 
-- Use `/tokens` regularly to monitor your conversation size
-- The auto-summarization kicks in at 12k tokens, but you can manually `/clear` anytime
-- Sessions persist across restarts - use `/clear` for a fresh start
-- Press `Ctrl+C` to interrupt long responses without losing your session
-- Adjust `temperature` for different response styles (0.1 = focused, 1.0 = creative)
+Contributions are welcome! See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
 ## Support
 
-For vLLM server setup and configuration, see the [vLLM documentation](https://docs.vllm.ai/).
+- 📖 Read the [Documentation](docs/)
+- 🐛 Report bugs via [GitHub Issues](https://github.com/chris-colinsky/Zorac/issues)
+- 💡 Request features via [GitHub Issues](https://github.com/chris-colinsky/Zorac/issues)
+- 📚 Check [vLLM Documentation](https://docs.vllm.ai/) for server issues
 
-For issues with this client, please check:
-1. Server connectivity
-2. Model name matches your vLLM server
-3. Python version compatibility (3.13+)
+---
+
+**Star this repo if you find it useful! ⭐**
