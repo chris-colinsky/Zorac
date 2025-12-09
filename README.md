@@ -124,9 +124,51 @@ source .venv/bin/activate
 zorac
 ```
 
-### CLI Installation (Optional)
+### Binary Installation (Recommended for End Users)
 
-You can install Zorac globally as a command-line tool, so you don't need to manage virtual environments manually.
+Download pre-built binaries from the [latest release](https://github.com/chris-colinsky/Zorac/releases/latest). No Python installation required!
+
+```bash
+# Linux (x86_64)
+wget https://github.com/chris-colinsky/Zorac/releases/latest/download/zorac-linux-x86_64
+chmod +x zorac-linux-x86_64
+./zorac-linux-x86_64
+
+# macOS (ARM64)
+wget https://github.com/chris-colinsky/Zorac/releases/latest/download/zorac-macos-arm64
+chmod +x zorac-macos-arm64
+./zorac-macos-arm64
+```
+
+**Windows (x86_64):**
+1. Download `zorac-windows-x86_64.exe` from the [releases page](https://github.com/chris-colinsky/Zorac/releases/latest)
+2. Double-click to run, or from Command Prompt/PowerShell:
+```cmd
+zorac-windows-x86_64.exe
+```
+
+**Optional: Add to PATH**
+
+```bash
+# Linux/macOS
+sudo mv zorac-* /usr/local/bin/zorac
+
+# Then run from anywhere:
+zorac
+```
+
+```powershell
+# Windows (run as Administrator in PowerShell)
+# Move to a permanent location first, then add to PATH
+Move-Item zorac-windows-x86_64.exe C:\Windows\System32\zorac.exe
+
+# Then run from anywhere:
+zorac
+```
+
+### CLI Installation (For Developers)
+
+You can install Zorac globally as a command-line tool from source:
 
 ```bash
 # Using uv (Recommended)
