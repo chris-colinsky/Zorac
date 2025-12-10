@@ -64,6 +64,15 @@ chmod +x zorac-macos-arm64
 ./zorac-macos-arm64
 ```
 
+**macOS Security Note:** Since this binary is unsigned, macOS will block it on first run. To allow it:
+1. Try to run the binary (it will be blocked)
+2. Open **System Settings** → **Privacy & Security**
+3. Scroll down to the **Security** section
+4. Click **"Open Anyway"** next to the Zorac message
+5. Run the binary again and click **"Open"** when prompted
+
+See [Apple's guide on opening apps from unidentified developers](https://support.apple.com/en-us/102445) for more details.
+
 **Windows Users:** Use [WSL (Windows Subsystem for Linux)](https://learn.microsoft.com/en-us/windows/wsl/install) and follow the Linux instructions above.
 
 ### 2. Set Up vLLM Server
