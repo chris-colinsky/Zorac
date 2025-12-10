@@ -5,6 +5,8 @@ import time
 import tiktoken
 from openai import OpenAI
 from openai.types.chat import ChatCompletionMessageParam
+from prompt_toolkit import PromptSession
+from prompt_toolkit.formatted_text import FormattedText
 from rich import box
 from rich.live import Live
 from rich.markdown import Markdown
@@ -47,6 +49,32 @@ def setup_readline():
         console.print(f"[yellow]Warning: Could not setup command history: {e}[/yellow]")
 
 
+def get_multiline_input(session: PromptSession) -> str:
+    """
+    Get multi-line input from the user using prompt_toolkit.
+
+    Users can:
+    - Press Enter to submit
+    - Paste multi-line text directly (newlines preserved)
+
+    Returns the complete input as a single string.
+    """
+    print()
+    # Create formatted prompt with blue color
+    formatted_prompt = FormattedText(
+        [
+            ("ansiblue bold", "You:"),
+            ("", " "),
+        ]
+    )
+
+    try:
+        user_input = session.prompt(formatted_prompt)
+        return str(user_input).strip()
+    except (EOFError, KeyboardInterrupt):
+        return ""
+
+
 def main():
     # Get configuration settings (these can be updated at runtime via /config)
     VLLM_BASE_URL = get_setting("VLLM_BASE_URL", "http://localhost:8000/v1")
@@ -85,17 +113,16 @@ def main():
         # Initialize conversation memory with system message
         messages = [{"role": "system", "content": "You are a helpful assistant."}]
 
+    # Create prompt session for input
+    # Pasted multi-line text is preserved, Enter submits
+    prompt_session = PromptSession()
+
     # Interactive loop
     while True:
         try:
-            # Get user input
+            # Get user input (supports pasting multi-line text)
             try:
-                # Use ANSI codes for prompt so readline handles it correctly (can't be deleted, redraws correctly)
-                # \001 and \002 mark non-printing characters for readline
-                # Note: We print \n separately to prevent readline refresh issues on macOS
-                print()
-                prompt = "\001\033[1;34m\002You:\001\033[0m\002 "
-                user_input = input(prompt).strip()
+                user_input = get_multiline_input(prompt_session)
             except EOFError:
                 break
 

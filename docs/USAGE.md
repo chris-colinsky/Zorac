@@ -29,6 +29,25 @@ Stats: 245 tokens in 3.8s (64.5 tok/s) | Total: 4 msgs | Tokens: 312/12000
 
 The assistant will respond, and the conversation is automatically saved.
 
+### Multi-line Input
+
+Zorac supports pasting multi-line text from your clipboard:
+
+- **Press Enter** - Submit your prompt
+- **Paste multi-line text** - Works seamlessly from clipboard, newlines are preserved
+
+Example:
+```
+You: Please explain the following code:
+def fibonacci(n):
+    if n <= 1:
+        return n
+    return fibonacci(n-1) + fibonacci(n-2)
+[Press Enter to submit]
+```
+
+Simply copy any multi-line text and paste it into the prompt. The newlines will be preserved, and you can submit with Enter.
+
 ## Available Commands
 
 All commands start with `/`:

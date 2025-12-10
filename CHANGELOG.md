@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.0.0] - 2025-12-10
+## [1.0.0]
 
 ### Added
 - **Modular Package Structure**: Refactored from monolithic file to organized package with 8 focused modules
@@ -48,6 +48,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Command history: `~/.zorac/history`
   - Configuration: `~/.zorac/config.json`
 
+- **Multi-line Input Support**: Enhanced input handling for better user experience
+  - Paste multi-line text directly from clipboard
+  - Newlines are preserved when pasting
+  - Press Enter to submit prompt
+  - Prevents treating each pasted line as separate prompt
+
+- **Binary Releases**: Automated build system for distribution
+  - Pre-built binaries for Linux (x86_64) and macOS (ARM64)
+  - Automated builds via GitHub Actions
+  - No Python installation required for end users
+
+- **Modular Documentation**: Reorganized documentation for better navigation
+  - Separate guides for Installation, Configuration, Usage, and Development
+  - All documentation consolidated in `docs/` directory
+  - Cleaner, more focused README as navigation hub
+
 ### Changed
 - **Architecture**: Transitioned from single-file to modular package structure for better maintainability
 - **Entry Points**: Now supports three execution methods:
@@ -55,6 +71,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `zorac` (console script after installation)
   - `uv run zorac` (via uv)
 - **Status**: Promoted to Production/Stable (Development Status: 5)
+- **Platform Support**: Linux and macOS officially supported (Windows users can use WSL)
 
 ### Improved
 - **Code Organization**: 53% reduction in perceived complexity through modularization
