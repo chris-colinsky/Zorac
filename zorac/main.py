@@ -1,4 +1,5 @@
 import atexit
+import contextlib
 import readline
 import time
 
@@ -24,7 +25,9 @@ from .config import (
     get_float_setting,
     get_int_setting,
     get_setting,
+    is_first_run,
     load_config,
+    run_first_time_setup,
     save_config,
 )
 from .console import console
@@ -37,15 +40,22 @@ def setup_readline():
     """Setup command history and persistent storage"""
     try:
         ensure_zorac_dir()
-        if HISTORY_FILE.exists():
-            readline.read_history_file(str(HISTORY_FILE))
 
-        # Save history on exit
-        atexit.register(readline.write_history_file, str(HISTORY_FILE))
+        # Try to read history file if it exists
+        if HISTORY_FILE.exists():
+            with contextlib.suppress(OSError, PermissionError):
+                readline.read_history_file(str(HISTORY_FILE))
+
+        # Try to register history saving on exit
+        with contextlib.suppress(OSError, PermissionError):
+            atexit.register(readline.write_history_file, str(HISTORY_FILE))
 
         # Optional: Enable tab completion if desired (simple default)
-        readline.parse_and_bind("tab: complete")
+        # readline.parse_and_bind may fail in some environments (Operation not permitted)
+        with contextlib.suppress(OSError, AttributeError):
+            readline.parse_and_bind("tab: complete")
     except Exception as e:
+        # Only show warning for unexpected errors
         console.print(f"[yellow]Warning: Could not setup command history: {e}[/yellow]")
 
 
@@ -76,6 +86,13 @@ def get_multiline_input(session: PromptSession) -> str:
 
 
 def main():
+    # Print welcome message first (always show logo and tagline)
+    print_header()
+
+    # Check if this is the first run and run setup wizard
+    if is_first_run():
+        run_first_time_setup()
+
     # Get configuration settings (these can be updated at runtime via /config)
     VLLM_BASE_URL = get_setting("VLLM_BASE_URL", "http://localhost:8000/v1")
     VLLM_API_KEY = get_setting("VLLM_API_KEY", "EMPTY")
@@ -85,9 +102,6 @@ def main():
     temperature = get_float_setting("TEMPERATURE", 0.1)
     max_output_tokens = get_int_setting("MAX_OUTPUT_TOKENS", 4000)
     stream_enabled = get_bool_setting("STREAM", True)
-
-    # Print welcome message first
-    print_header()
 
     # Setup readline history
     setup_readline()

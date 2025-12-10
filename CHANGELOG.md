@@ -48,6 +48,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Command history: `~/.zorac/history`
   - Configuration: `~/.zorac/config.json`
 
+- **First-Run Setup Wizard**: Interactive configuration on first launch
+  - Prompts for vLLM server URL and model name
+  - Creates configuration file at `~/.zorac/config.json`
+  - Only runs once, on first startup
+  - Can be reconfigured anytime with `/config` command
+
 - **Multi-line Input Support**: Enhanced input handling for better user experience
   - Paste multi-line text directly from clipboard
   - Newlines are preserved when pasting
