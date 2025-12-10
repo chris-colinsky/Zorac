@@ -14,12 +14,12 @@ Perfect for developers who want a **self-hosted ChatGPT alternative** running on
 
 ## Why Self-Host Your LLM?
 
-- 💰 **Zero ongoing costs** - No API fees, run unlimited queries
-- 🔒 **Complete privacy** - Your data never leaves your machine
-- ⚡ **Low latency** - Sub-second responses on local hardware
-- 🎮 **Use existing hardware** - Your gaming GPU works great for AI
-- 🔧 **Full control** - Customize models, parameters, and behavior
-- 📡 **Work offline** - No internet required after initial setup
+- **Zero ongoing costs** - No API fees, run unlimited queries
+- **Complete privacy** - Your data never leaves your machine
+- **Low latency** - Sub-second responses on local hardware
+- **Use existing hardware** - Your gaming GPU works great for AI
+- **Full control** - Customize models, parameters, and behavior
+- **Work offline** - No internet required after initial setup
 
 ## Features
 
@@ -36,15 +36,15 @@ Perfect for developers who want a **self-hosted ChatGPT alternative** running on
 
 ### Rich Terminal UI with Live Streaming
 
-![Zorac Chat Interface](screenshots/zorac-screenshot-1.png)
-
 *Interactive chat with real-time streaming responses, markdown rendering, and performance metrics*
+
+![Zorac Chat Interface](screenshots/zorac-screenshot-1.png)
 
 ### Token Management & Commands
 
-![Token Usage and Commands](screenshots/zorac-screenshot-2.png)
-
 *Built-in commands for session management and token tracking*
+
+![Token Usage and Commands](screenshots/zorac-screenshot-2.png)
 
 ## Quick Start
 
@@ -82,17 +82,64 @@ vllm serve stelterlab/Mistral-Small-24B-Instruct-2501-AWQ \
 
 ### 3. Configure & Run
 
-On first run, Zorac will create a config file at `~/.zorac/config.json`. Update your server URL:
+**First Run:**
+
+When you start Zorac for the first time, you'll be greeted with a setup wizard:
 
 ```bash
-# In Zorac, use the /config command
-You: /config set VLLM_BASE_URL http://YOUR_SERVER:8000/v1
+$ zorac
+
+     ███████╗ ██████╗ ██████╗  █████╗  ██████╗
+     ╚══███╔╝██╔═══██╗██╔══██╗██╔══██╗██╔════╝
+       ███╔╝ ██║   ██║██████╔╝███████║██║
+      ███╔╝  ██║   ██║██╔══██╗██╔══██║██║
+     ███████╗╚██████╔╝██║  ██║██║  ██║╚██████╗
+     ╚══════╝ ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝ ╚═════╝
+        intelligence running on localhost
+
+────────────────────── Welcome to Zorac! ──────────────────────
+
+This appears to be your first time running Zorac.
+Let's configure your vLLM server connection.
+
+Server Configuration:
+  Default: http://localhost:8000/v1
+  vLLM Server URL (or press Enter for default):
+
+  Default: stelterlab/Mistral-Small-24B-Instruct-2501-AWQ
+  Model name (or press Enter for default):
+
+✓ Configuration saved to ~/.zorac/config.json
+You can change these settings anytime with /config
 ```
 
-Or create a `.env` file (if running from source):
+**Viewing Configuration:**
+
+After setup, you can view or modify your configuration anytime:
+
+```bash
+# View all settings
+You: /config list
+
+Configuration:
+  VLLM_BASE_URL:      http://localhost:8000/v1
+  VLLM_MODEL:         stelterlab/Mistral-Small-24B-Instruct-2501-AWQ
+  MAX_INPUT_TOKENS:   12000
+  MAX_OUTPUT_TOKENS:  4000
+  TEMPERATURE:        0.1
+
+# Update a setting
+You: /config set VLLM_BASE_URL http://YOUR_SERVER:8000/v1
+✓ Updated VLLM_BASE_URL in ~/.zorac/config.json
+```
+
+**Alternative (Source Users):**
+
+If running from source, you can also create a `.env` file:
 
 ```bash
 VLLM_BASE_URL=http://localhost:8000/v1
+VLLM_MODEL=stelterlab/Mistral-Small-24B-Instruct-2501-AWQ
 ```
 
 ## Documentation
@@ -124,16 +171,16 @@ This works on **consumer gaming GPUs**:
 | RTX 4070 Ti | 12GB | Up to 7B (AWQ) | 40-45 tok/s |
 | RTX 3080 | 10GB | Up to 7B (AWQ) | 35-40 tok/s |
 
-⭐ Recommended configuration. See [SERVER_SETUP.md](docs/SERVER_SETUP.md) for optimization details.
+Recommended configuration. See [SERVER_SETUP.md](docs/SERVER_SETUP.md) for optimization details.
 
 ## Use Cases
 
-- 💬 **Local ChatGPT alternative** - Private conversations, no data collection
-- 👨‍💻 **Coding assistant** - Works with Continue.dev, Cline, and other AI coding tools
-- 🤖 **Agentic workflows** - LangChain/LangGraph running entirely local
-- 📝 **Content generation** - Write, summarize, analyze - all offline
-- 🔬 **AI experimentation** - Test prompts and models without API costs
-- 🎓 **Learning AI/ML** - Understand LLM inference without cloud dependencies
+- **Local ChatGPT alternative** - Private conversations, no data collection
+- **Coding assistant** - Works with Continue.dev, Cline, and other AI coding tools
+- **Agentic workflows** - LangChain/LangGraph running entirely local
+- **Content generation** - Write, summarize, analyze - all offline
+- **AI experimentation** - Test prompts and models without API costs
+- **Learning AI/ML** - Understand LLM inference without cloud dependencies
 
 ## Why Mistral-Small-24B-AWQ?
 
@@ -144,26 +191,6 @@ This application is optimized for `Mistral-Small-24B-Instruct-2501-AWQ`:
 - **High Performance** - AWQ with Marlin kernel enables 60-65 tok/s on RTX 4090
 
 You can use any vLLM-compatible model by changing the `VLLM_MODEL` setting.
-
-## Example Session
-
-```bash
-$ zorac
-✓ Loaded previous session (4 messages, ~892 tokens)
-
-You: Explain async/await in Python
-Assistant: [Streams detailed explanation with code examples...]
-Stats: 342 tokens in 5.2s (65.8 tok/s) | Total: 6 msgs | Tokens: ~1234/12000
-
-You: /tokens
-Current: ~1234 tokens | Limit: 12000 | Remaining: ~10766
-
-You: /config set TEMPERATURE 0.8
-✓ Updated TEMPERATURE in ~/.zorac/config.json
-
-You: /quit
-✓ Session saved. Goodbye!
-```
 
 ## FAQ
 
