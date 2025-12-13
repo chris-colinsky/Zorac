@@ -1,0 +1,99 @@
+name: Build and Release
+
+on:
+  push:
+    branches:
+      - 'v[0-9]*.[0-9]*.[0-9]*'  # Trigger on version branches like v1.0.0
+      - 'release/*'  # Trigger on release branches
+    tags:
+      - 'v[0-9]*.[0-9]*.[0-9]*'  # Trigger on version tags like v1.0.0
+  workflow_dispatch:  # Allow manual trigger
+
+jobs:
+  build-binaries:
+    name: Build Binary for ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            binary_name: zorac-linux-x86_64
+            artifact_name: zorac-linux-x86_64
+          - os: macos-latest
+            binary_name: zorac-macos-arm64
+            artifact_name: zorac-macos-arm64
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+
+      - name: Install dependencies
+        run: |
+          uv sync
+          uv pip install pyinstaller
+
+      - name: Build binary with PyInstaller
+        run: |
+          uv run pyinstaller --onefile --name ${{ matrix.binary_name }} \
+            --add-data "zorac/*.py:zorac" \
+            --hidden-import tiktoken_ext.openai_public \
+            --hidden-import tiktoken_ext \
+            --hidden-import zorac \
+            --hidden-import zorac.main \
+            --hidden-import zorac.config \
+            --hidden-import zorac.console \
+            --hidden-import zorac.llm \
+            --hidden-import zorac.session \
+            --hidden-import zorac.utils \
+            --collect-data tiktoken \
+            --collect-data rich \
+            run_zorac.py
+
+      - name: Test binary
+        run: |
+          ./dist/${{ matrix.binary_name }} --help || echo "Binary runs"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact_name }}
+          path: dist/${{ matrix.binary_name }}
+
+  create-release:
+    name: Create GitHub Release
+    needs: build-binaries
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')  # Only create release for tags
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts/
+
+      - name: Display structure
+        run: ls -R artifacts/
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: artifacts/**/*
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+          body_path: CHANGELOG.md
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

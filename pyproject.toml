@@ -1,6 +1,6 @@
 [project]
 name = "zorac"
-version = "0.1.0"
+version = "1.0.0"
 description = "Interactive CLI chat client for vLLM inference servers with persistent sessions and automatic context management"
 readme = "README.md"
 license = { text = "MIT" }
@@ -10,7 +10,7 @@ authors = [
 ]
 keywords = ["vllm", "llm", "chat", "inference", "mistral", "cli"]
 classifiers = [
-    "Development Status :: 4 - Beta",
+    "Development Status :: 5 - Production/Stable",
     "Intended Audience :: Developers",
     "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3.13",
@@ -21,6 +21,7 @@ dependencies = [
     "tiktoken>=0.8.0",
     "python-dotenv>=1.0.0",
     "rich>=14.2.0",
+    "prompt-toolkit>=3.0.0",
 ]
 
 [project.scripts]
@@ -37,8 +38,8 @@ dev = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/yourusername/zorac"
-Issues = "https://github.com/yourusername/zorac/issues"
+Homepage = "https://github.com/chris-colinsky/zorac"
+Issues = "https://github.com/chris-colinsky/zorac/issues"
 
 [build-system]
 requires = ["hatchling"]

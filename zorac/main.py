@@ -1,10 +1,13 @@
 import atexit
+import contextlib
 import readline
 import time
 
 import tiktoken
 from openai import OpenAI
 from openai.types.chat import ChatCompletionMessageParam
+from prompt_toolkit import PromptSession
+from prompt_toolkit.formatted_text import FormattedText
 from rich import box
 from rich.live import Live
 from rich.markdown import Markdown
@@ -22,7 +25,9 @@ from .config import (
     get_float_setting,
     get_int_setting,
     get_setting,
+    is_first_run,
     load_config,
+    run_first_time_setup,
     save_config,
 )
 from .console import console
@@ -35,19 +40,59 @@ def setup_readline():
     """Setup command history and persistent storage"""
     try:
         ensure_zorac_dir()
-        if HISTORY_FILE.exists():
-            readline.read_history_file(str(HISTORY_FILE))
 
-        # Save history on exit
-        atexit.register(readline.write_history_file, str(HISTORY_FILE))
+        # Try to read history file if it exists
+        if HISTORY_FILE.exists():
+            with contextlib.suppress(OSError, PermissionError):
+                readline.read_history_file(str(HISTORY_FILE))
+
+        # Try to register history saving on exit
+        with contextlib.suppress(OSError, PermissionError):
+            atexit.register(readline.write_history_file, str(HISTORY_FILE))
 
         # Optional: Enable tab completion if desired (simple default)
-        readline.parse_and_bind("tab: complete")
+        # readline.parse_and_bind may fail in some environments (Operation not permitted)
+        with contextlib.suppress(OSError, AttributeError):
+            readline.parse_and_bind("tab: complete")
     except Exception as e:
+        # Only show warning for unexpected errors
         console.print(f"[yellow]Warning: Could not setup command history: {e}[/yellow]")
 
 
+def get_multiline_input(session: PromptSession) -> str:
+    """
+    Get multi-line input from the user using prompt_toolkit.
+
+    Users can:
+    - Press Enter to submit
+    - Paste multi-line text directly (newlines preserved)
+
+    Returns the complete input as a single string.
+    """
+    print()
+    # Create formatted prompt with blue color
+    formatted_prompt = FormattedText(
+        [
+            ("ansiblue bold", "You:"),
+            ("", " "),
+        ]
+    )
+
+    try:
+        user_input = session.prompt(formatted_prompt)
+        return str(user_input).strip()
+    except (EOFError, KeyboardInterrupt):
+        return ""
+
+
 def main():
+    # Print welcome message first (always show logo and tagline)
+    print_header()
+
+    # Check if this is the first run and run setup wizard
+    if is_first_run():
+        run_first_time_setup()
+
     # Get configuration settings (these can be updated at runtime via /config)
     VLLM_BASE_URL = get_setting("VLLM_BASE_URL", "http://localhost:8000/v1")
     VLLM_API_KEY = get_setting("VLLM_API_KEY", "EMPTY")
@@ -57,9 +102,6 @@ def main():
     temperature = get_float_setting("TEMPERATURE", 0.1)
     max_output_tokens = get_int_setting("MAX_OUTPUT_TOKENS", 4000)
     stream_enabled = get_bool_setting("STREAM", True)
-
-    # Print welcome message first
-    print_header()
 
     # Setup readline history
     setup_readline()
@@ -85,17 +127,16 @@ def main():
         # Initialize conversation memory with system message
         messages = [{"role": "system", "content": "You are a helpful assistant."}]
 
+    # Create prompt session for input
+    # Pasted multi-line text is preserved, Enter submits
+    prompt_session = PromptSession()
+
     # Interactive loop
     while True:
         try:
-            # Get user input
+            # Get user input (supports pasting multi-line text)
             try:
-                # Use ANSI codes for prompt so readline handles it correctly (can't be deleted, redraws correctly)
-                # \001 and \002 mark non-printing characters for readline
-                # Note: We print \n separately to prevent readline refresh issues on macOS
-                print()
-                prompt = "\001\033[1;34m\002You:\001\033[0m\002 "
-                user_input = input(prompt).strip()
+                user_input = get_multiline_input(prompt_session)
             except EOFError:
                 break
 

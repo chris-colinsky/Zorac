@@ -108,6 +108,63 @@ def get_bool_setting(key: str, default: bool) -> bool:
     return value.lower() in ("true", "1", "yes", "on")
 
 
+def is_first_run() -> bool:
+    """Check if this is the first time Zorac is being run."""
+    return not CONFIG_FILE.exists()
+
+
+def run_first_time_setup() -> None:
+    """Interactive first-time setup wizard."""
+    from rich.columns import Columns
+    from rich.rule import Rule
+
+    console.print()
+
+    # Create a Rule with limited width to match the panel width
+    # Wrap in Columns to center it with a max width
+    rule = Rule("[bold cyan]Welcome to Zorac![/bold cyan]", style="cyan")
+    console.print(Columns([rule], width=56, expand=False))
+
+    console.print()
+    console.print("This appears to be your first time running Zorac.")
+    console.print("Let's configure your vLLM server connection.")
+    console.print()
+
+    # Get configuration from user
+    console.print("[bold]Server Configuration:[/bold]")
+    console.print(f"  Default: {DEFAULT_CONFIG['VLLM_BASE_URL']}")
+    base_url = input("  vLLM Server URL (or press Enter for default): ").strip()
+    if not base_url:
+        base_url = DEFAULT_CONFIG["VLLM_BASE_URL"]
+
+    console.print(f"\n  Default: {DEFAULT_CONFIG['VLLM_MODEL']}")
+    model = input("  Model name (or press Enter for default): ").strip()
+    if not model:
+        model = DEFAULT_CONFIG["VLLM_MODEL"]
+
+    # Build config with user values
+    config = {
+        "VLLM_BASE_URL": base_url.rstrip("/"),
+        "VLLM_MODEL": model,
+        "VLLM_API_KEY": DEFAULT_CONFIG["VLLM_API_KEY"],
+        "MAX_INPUT_TOKENS": DEFAULT_CONFIG["MAX_INPUT_TOKENS"],
+        "MAX_OUTPUT_TOKENS": DEFAULT_CONFIG["MAX_OUTPUT_TOKENS"],
+        "KEEP_RECENT_MESSAGES": DEFAULT_CONFIG["KEEP_RECENT_MESSAGES"],
+        "TEMPERATURE": DEFAULT_CONFIG["TEMPERATURE"],
+        "STREAM": DEFAULT_CONFIG["STREAM"],
+    }
+
+    # Save configuration
+    if save_config(config):
+        console.print()
+        console.print(f"[green]✓ Configuration saved to {CONFIG_FILE}[/green]")
+        console.print("[dim]You can change these settings anytime with /config[/dim]")
+        console.print()
+    else:
+        console.print("[red]✗ Failed to save configuration[/red]")
+        console.print()
+
+
 # Initialize Configuration
 VLLM_BASE_URL = get_setting("VLLM_BASE_URL", DEFAULT_CONFIG["VLLM_BASE_URL"]).strip().rstrip("/")
 VLLM_API_KEY = get_setting("VLLM_API_KEY", DEFAULT_CONFIG["VLLM_API_KEY"])
