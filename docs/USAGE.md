@@ -48,12 +48,48 @@ def fibonacci(n):
 
 Simply copy any multi-line text and paste it into the prompt. The newlines will be preserved, and you can submit with Enter.
 
+## Getting Help
+
+To see all available commands at any time, use the `/help` command:
+
+```bash
+You: /help
+
+Available Commands:
+  /help              - Show all available commands
+  /quit or /exit     - Save and exit the application
+  /clear             - Reset conversation to initial system message
+  /save              - Manually save session to disk
+  /load              - Reload session from disk
+  /tokens            - Display current token usage statistics
+  /summarize         - Force conversation summarization
+  /summary           - Display the current conversation summary
+  /config            - Manage configuration settings
+    /config list     - Show current configuration
+    /config set      - Set a configuration value
+    /config get      - Get a specific configuration value
+```
+
+You can also ask the LLM natural language questions about commands:
+
+```bash
+You: How do I save my session?
+Assistant: You can save your session using the /save command. Sessions are also automatically saved after each assistant response...
+
+You: What commands are available?
+Assistant: Here are the available commands:
+- /help - Shows all available commands
+- /clear - Resets the conversation...
+[continues listing commands]
+```
+
 ## Available Commands
 
 All commands start with `/`:
 
 | Command | Description |
 |---------|-------------|
+| `/help` | Show all available commands with descriptions |
 | `/clear` | Clear conversation history and start fresh |
 | `/save` | Manually save the current session |
 | `/load` | Reload session from disk |

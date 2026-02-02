@@ -140,6 +140,9 @@ Configuration:
 # Update a setting
 You: /config set VLLM_BASE_URL http://YOUR_SERVER:8000/v1
 ✓ Updated VLLM_BASE_URL in ~/.zorac/config.json
+
+# See all available commands
+You: /help
 ```
 
 **Alternative (Source Users):**

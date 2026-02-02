@@ -35,6 +35,7 @@ When users ask about installation, configuration, or usage, refer them to the ap
 - **zorac/**: Main package directory containing the application modules
   - **__init__.py**: Package exports and public API
   - **__main__.py**: Entry point for `python -m zorac`
+  - **commands.py**: Command registry and help text generation
   - **config.py**: Configuration management and environment variables
   - **console.py**: Rich console singleton for terminal output
   - **llm.py**: LLM interaction and conversation summarization
@@ -71,6 +72,12 @@ Zorac is organized as a modular Python package with clear separation of concerns
 
 ### Package Modules
 
+**zorac/commands.py** - Command Registry
+- `COMMANDS`: Centralized list of all interactive commands with descriptions
+- `get_help_text()`: Generate formatted help text for `/help` command display
+- `get_system_prompt_commands()`: Generate command information for system prompt (enables LLM command awareness)
+- Single source of truth for all command definitions
+
 **zorac/config.py** - Configuration Management
 - `load_config()`: Load configuration from `~/.zorac/config.json`
 - `save_config(config)`: Save configuration to disk
@@ -95,6 +102,7 @@ Zorac is organized as a modular Python package with clear separation of concerns
 
 **zorac/main.py** - Main Application
 - `main()`: Interactive loop handling user input, streaming API calls, and session management
+- `get_initial_system_message()`: Generate system message with command information for LLM awareness
 - `setup_readline()`: Configure command history and persistent storage
 
 ### UI/UX Implementation
@@ -113,7 +121,8 @@ Zorac is organized as a modular Python package with clear separation of concerns
 - **Token Tracking**: Real-time monitoring using tiktoken (cl100k_base encoding)
 - **Performance Metrics**: Displays tokens/second, response time, and token usage after each interaction
 - **Command History**: Persistent readline history stored in `~/.zorac/history`
-- **Interactive Commands**: `/clear`, `/save`, `/load`, `/tokens`, `/summarize`, `/summary`, `/config`, `/quit`, `/exit`
+- **LLM Command Awareness**: System prompt includes command information, enabling the LLM to answer questions about Zorac functionality
+- **Interactive Commands**: `/help`, `/clear`, `/save`, `/load`, `/tokens`, `/summarize`, `/summary`, `/config`, `/quit`, `/exit`
 
 ## Configuration
 
@@ -239,6 +248,7 @@ The test suite covers:
 - Edge cases and error paths covered
 
 ### Interactive Commands (in the CLI)
+- `/help` - Show all available commands with descriptions
 - `/clear` - Reset conversation to initial system message and save
 - `/save` - Manually save session to disk
 - `/load` - Reload session from disk (discards unsaved changes)
