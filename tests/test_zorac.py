@@ -24,6 +24,8 @@ from zorac import (
     save_session,
     summarize_old_messages,
 )
+from zorac.commands import get_help_text, get_system_prompt_commands
+from zorac.main import get_initial_system_message
 
 
 class TestCountTokens(unittest.TestCase):
@@ -414,6 +416,68 @@ class TestIntegration(unittest.TestCase):
         if loaded_messages is not None:
             loaded_count = count_tokens(loaded_messages)
             self.assertEqual(original_count, loaded_count)
+
+
+class TestHelpFeatureIntegration(unittest.TestCase):
+    """Integration tests for the help feature"""
+
+    def test_get_initial_system_message_includes_commands(self):
+        """Test that initial system message includes command information"""
+        system_message = get_initial_system_message()
+        self.assertIsInstance(system_message, str)
+        self.assertIn("You are a helpful assistant.", system_message)
+        self.assertIn("Zorac", system_message)
+        self.assertIn("Available Commands:", system_message)
+
+    def test_get_initial_system_message_includes_all_commands(self):
+        """Test that initial system message includes all command names"""
+        system_message = get_initial_system_message()
+        # Check for key commands
+        self.assertIn("/help", system_message)
+        self.assertIn("/quit or /exit", system_message)
+        self.assertIn("/clear", system_message)
+        self.assertIn("/save", system_message)
+        self.assertIn("/config", system_message)
+
+    def test_help_text_formatted_correctly(self):
+        """Test that help text is formatted for console display"""
+        help_text = get_help_text()
+        # Should have Rich formatting
+        self.assertIn("[cyan]", help_text)
+        self.assertIn("[bold]", help_text)
+        # Should have header
+        self.assertIn("Available Commands:", help_text)
+
+    def test_system_prompt_commands_no_rich_formatting(self):
+        """Test that system prompt doesn't include Rich formatting"""
+        prompt_commands = get_system_prompt_commands()
+        # Should NOT have Rich formatting codes
+        self.assertNotIn("[cyan]", prompt_commands)
+        self.assertNotIn("[bold]", prompt_commands)
+        # But should have commands
+        self.assertIn("/help", prompt_commands)
+
+    @patch("zorac.main.console")
+    def test_help_command_displays_output(self, mock_console):
+        """Test that /help command would display help text"""
+        # This tests that get_help_text can be called and returns valid output
+        help_output = get_help_text()
+        self.assertIsInstance(help_output, str)
+        self.assertGreater(len(help_output), 100)
+        # Verify it contains expected content
+        self.assertIn("/help", help_output)
+        self.assertIn("/quit or /exit", help_output)
+        self.assertIn("Available Commands:", help_output)
+
+    def test_system_message_token_overhead_reasonable(self):
+        """Test that enhanced system message doesn't add excessive tokens"""
+        system_message = get_initial_system_message()
+        messages: list[ChatCompletionMessageParam] = [{"role": "system", "content": system_message}]
+        token_count = count_tokens(messages)
+        # Should be under 500 tokens to avoid wasting context
+        self.assertLess(token_count, 500, "System message with commands uses too many tokens")
+        # But should be more than the basic message
+        self.assertGreater(token_count, 50)
 
 
 if __name__ == "__main__":

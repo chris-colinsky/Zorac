@@ -3,7 +3,6 @@ name: Build and Release
 on:
   push:
     branches:
-      - 'v[0-9]*.[0-9]*.[0-9]*'  # Trigger on version branches like v1.0.0
       - 'release/*'  # Trigger on release branches
     tags:
       - 'v[0-9]*.[0-9]*.[0-9]*'  # Trigger on version tags like v1.0.0

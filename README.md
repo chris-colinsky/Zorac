@@ -24,7 +24,10 @@ Perfect for developers who want a **self-hosted ChatGPT alternative** running on
 ## Features
 
 - **Interactive CLI** - Natural conversation flow with continuous input prompts
-- **Rich Terminal UI** - Beautiful formatted output with colors, panels, and markdown rendering
+- **Rich Terminal UI** - Beautiful formatted output with optimized readability
+  - Left-aligned content with 60% width constraint for comfortable reading
+  - Syntax-highlighted code blocks and formatted markdown
+  - Clean, modern design without unnecessary clutter
 - **Streaming Responses** - Real-time token streaming with live markdown display
 - **Persistent Sessions** - Automatically saves and restores conversation history
 - **Smart Context Management** - Automatically summarizes old messages when approaching token limits
@@ -79,16 +82,6 @@ See [Apple's guide on opening apps from unidentified developers](https://support
 
 You need a vLLM inference server running. See [SERVER_SETUP.md](docs/SERVER_SETUP.md) for complete setup instructions.
 
-Quick server start (if already set up):
-
-```bash
-vllm serve stelterlab/Mistral-Small-24B-Instruct-2501-AWQ \
-  --quantization awq_marlin \
-  --dtype half \
-  --max-model-len 16384 \
-  --max-num-seqs 32
-```
-
 ### 3. Configure & Run
 
 **First Run:**
@@ -140,6 +133,9 @@ Configuration:
 # Update a setting
 You: /config set VLLM_BASE_URL http://YOUR_SERVER:8000/v1
 ✓ Updated VLLM_BASE_URL in ~/.zorac/config.json
+
+# See all available commands
+You: /help
 ```
 
 **Alternative (Source Users):**
@@ -242,7 +238,7 @@ Electricity cost for an RTX 4090 running at ~300W is roughly $0.05-0.10 per hour
 <details>
 <summary><b>What other models can I run?</b></summary>
 
-Any model with vLLM support: Llama, Qwen, Phi, DeepSeek, etc. Just change the `VLLM_MODEL` setting. Check [vLLM's supported models](https://docs.vllm.ai/en/latest/models/supported_models.html).
+Any model with vLLM support: Llama, Qwen, Phi, DeepSeek, etc. Just change the `VLLM_MODEL` setting. Check [vLLM's supported models](https://docs.vllm.ai/en/stable/models/supported_models/).
 </details>
 
 ## Requirements
@@ -261,10 +257,10 @@ Contributions are welcome! See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines
 
 ## Support
 
-- 📖 Read the [Documentation](docs/)
-- 🐛 Report bugs via [GitHub Issues](https://github.com/chris-colinsky/Zorac/issues)
-- 💡 Request features via [GitHub Issues](https://github.com/chris-colinsky/Zorac/issues)
-- 📚 Check [vLLM Documentation](https://docs.vllm.ai/) for server issues
+- Read the [Documentation](docs/)
+- Report bugs via [GitHub Issues](https://github.com/chris-colinsky/Zorac/issues)
+- Request features via [GitHub Issues](https://github.com/chris-colinsky/Zorac/issues)
+- Check [vLLM Documentation](https://docs.vllm.ai/en/stable/) for server issues
 
 ---
 

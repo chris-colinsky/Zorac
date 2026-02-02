@@ -33,21 +33,27 @@ zorac/
 ├── zorac/                  # Main package
 │   ├── __init__.py        # Package exports
 │   ├── __main__.py        # Module entry point
+│   ├── commands.py        # Command registry
 │   ├── config.py          # Configuration management
 │   ├── console.py         # Rich console singleton
 │   ├── llm.py             # LLM operations
 │   ├── main.py            # Main event loop
+│   ├── markdown_custom.py # Custom markdown renderer
 │   ├── session.py         # Session persistence
 │   └── utils.py           # Utility functions
 ├── tests/                  # Test suite
 │   ├── __init__.py
+│   ├── test_commands.py   # Command registry tests (NEW)
 │   └── test_zorac.py      # Comprehensive tests
+├── requirements/           # Requirements documents (NEW)
+│   └── help_feature.md    # Help feature requirements
 ├── docs/                   # Documentation
 │   ├── INSTALLATION.md
 │   ├── CONFIGURATION.md
 │   ├── USAGE.md
 │   ├── DEVELOPMENT.md     # This file
-│   └── SERVER_SETUP.md    # vLLM server guide
+│   ├── SERVER_SETUP.md    # vLLM server guide
+│   └── TEST_TRAINING.md   # Multi-GPU training guide (NEW)
 ├── .github/workflows/      # CI/CD
 │   └── release.yml        # Release automation
 ├── pyproject.toml          # Dependencies and metadata
@@ -80,7 +86,7 @@ open htmlcov/index.html
 
 ### Test Coverage
 
-Current coverage: **37%** with **28 passing tests**
+Current coverage: **42%** with **34 passing tests**
 
 The test suite covers:
 - **Token counting** with various message types
@@ -88,7 +94,16 @@ The test suite covers:
 - **UI header rendering**
 - **Message summarization logic**
 - **Configuration validation**
-- **Integration workflows** (save/load roundtrips)
+- **Command registry** structure and validation
+- **Help system** (display and LLM awareness)
+- **Integration workflows** (save/load roundtrips, help feature)
+
+**Module coverage:**
+- `zorac/commands.py`: 100% coverage
+- `zorac/session.py`: 100% coverage
+- `zorac/console.py`: 100% coverage
+- `zorac/llm.py`: 96% coverage
+- `zorac/markdown_custom.py`: 45% coverage (UI rendering, mostly tested via integration)
 
 **Coverage targets:**
 - Minimum 80% code coverage
@@ -164,6 +179,14 @@ make pre-commit
 
 ### Module Breakdown
 
+**zorac/commands.py** - Command Registry (NEW)
+- Centralized registry of all interactive commands
+- `COMMANDS`: List of command definitions with descriptions
+- `get_help_text()`: Generates formatted help for `/help` display
+- `get_system_prompt_commands()`: Provides command info to LLM via system prompt
+- Single source of truth for command documentation
+- Enables LLM awareness of Zorac's capabilities
+
 **zorac/config.py** - Configuration Management
 - Three-tier priority: Environment Variables > Config File > Defaults
 - Type-safe getters: `get_int_setting()`, `get_float_setting()`, `get_bool_setting()`
@@ -179,8 +202,18 @@ make pre-commit
 - Handles API calls to vLLM server
 - Token limit management
 
+**zorac/markdown_custom.py** - Custom Markdown Renderer
+- `LeftAlignedMarkdown`: Custom markdown renderer with left-aligned headings
+- Monkey-patches Rich's `Heading.__rich_console__` to remove centered heading panels
+- Provides cleaner, more readable terminal output
+- Maintains Rich styling (bold, colored) while forcing left justification
+
 **zorac/main.py** - Main Event Loop
 - Interactive REPL with command handling
+- `get_initial_system_message()`: Generates enhanced system prompt with command info
+- `ConstrainedWidth`: Custom Rich renderable that constrains content to 60% of console width
+  - Uses `ConsoleOptions.update(max_width=...)` for stable text wrapping
+  - Provides optimal readability on all terminal sizes
 - Streaming and non-streaming response modes
 - Session auto-save after each response
 - Performance metrics tracking
@@ -199,7 +232,19 @@ make pre-commit
 
 ### New Commands
 
-Add command handling in `zorac/main.py`:
+When adding a new command, follow these steps to ensure consistency:
+
+1. **Add to Command Registry** (`zorac/commands.py`):
+
+```python
+{
+    "command": "/mycommand",
+    "description": "Short one-line description for /help",
+    "detailed": "Detailed explanation for the LLM system prompt. Describe what the command does and when to use it."
+}
+```
+
+2. **Implement Command Handler** in `zorac/main.py`:
 
 ```python
 if user_input.lower() == "/mycommand":
@@ -207,6 +252,19 @@ if user_input.lower() == "/mycommand":
     console.print("[green]Command executed![/green]")
     continue
 ```
+
+3. **Add Tests** in `tests/test_commands.py` or `tests/test_zorac.py`
+
+4. **Update Documentation**:
+   - Add to command list in `docs/USAGE.md`
+   - Update `CLAUDE.md` if architecture changes
+   - Update `README.md` if user-facing
+
+**Why use the command registry?**
+- Single source of truth for all commands
+- `/help` command automatically displays your new command
+- LLM automatically knows about your command and can suggest it to users
+- Ensures consistency across documentation
 
 ### New Configuration Settings
 
@@ -225,16 +283,69 @@ MAX_INPUT_TOKENS = get_int_setting("MAX_INPUT_TOKENS", 12000)
 
 ### UI Customization
 
-Modify Rich console styling in `zorac/console.py` or panel formatting in `zorac/main.py`:
+**Panel Formatting:**
+
+Modify panel styling in `zorac/main.py`:
 
 ```python
 console.print(Panel(
     content,
     box=box.ROUNDED,
     style="cyan",
-    expand=False
+    expand=True  # Full width for left-aligned content
 ))
 ```
+
+**Content Width Constraint:**
+
+Adjust the content width percentage in `zorac/main.py`:
+
+```python
+CONTENT_WIDTH_PCT = 0.6  # 60% width, change to desired percentage
+
+# Apply to content
+constrained_content = ConstrainedWidth(markdown_content, CONTENT_WIDTH_PCT)
+```
+
+**Custom Markdown Rendering:**
+
+Modify heading styles in `zorac/markdown_custom.py`:
+
+```python
+def _left_aligned_heading_rich_console(self, console, options):
+    if self.tag == "h1":
+        yield Text(text.plain, style="bold #ffffff")  # Customize H1 style
+    elif self.tag == "h2":
+        yield Text(text.plain, style="bold #cccccc")  # Customize H2 style
+```
+
+**Design Principles:**
+- Use width constraint (not padding) for stable layout on window resize
+- Left-align all content to match "Assistant:" label
+- Remove `vertical_overflow` from Live contexts to prevent scroll duplication
+- Constrain width using `ConsoleOptions.update(max_width=...)` for proper text wrapping
+
+## Feature Requirements
+
+The `requirements/` directory contains detailed specifications for features. When adding significant new functionality:
+
+1. **Create a requirements document**: `requirements/feature_name.md`
+2. **Include these sections**:
+   - Overview and user stories
+   - Functional requirements
+   - Technical design
+   - Implementation plan
+   - Testing strategy
+   - Documentation updates
+   - Acceptance criteria
+
+**Example:** See `requirements/help_feature.md` for a comprehensive example of a feature specification.
+
+**Benefits:**
+- Clear specification before implementation
+- Easier code review
+- Better documentation
+- Prevents scope creep
 
 ## Building Binaries
 
@@ -278,6 +389,39 @@ This triggers the workflow in `.github/workflows/release.yml` which:
 
 GitHub Actions will automatically build and publish the release.
 
+## LLM Command Awareness
+
+Zorac includes an innovative feature where the LLM assistant running inside the chat client is aware of Zorac's own commands and capabilities.
+
+### How It Works
+
+1. **Command Registry** (`zorac/commands.py`):
+   - Centralized list of all commands with detailed descriptions
+   - Single source of truth for command information
+
+2. **Enhanced System Prompt** (`zorac/main.py`):
+   - `get_initial_system_message()` injects command information into the system prompt
+   - LLM receives command details at session start
+
+3. **Natural Language Queries**:
+   - Users can ask: "How do I save my session?"
+   - LLM responds with relevant command information
+   - LLM suggests appropriate commands based on user needs
+
+### Token Overhead
+
+The enhanced system prompt adds ~400-450 tokens to each session. This is acceptable because:
+- Default context limit is 12,000 tokens
+- Overhead is <4% of available context
+- Users benefit from having an assistant that knows how to use the tool
+
+### Testing Command Awareness
+
+See `tests/test_zorac.py::TestHelpFeatureIntegration` for tests that verify:
+- System message includes all commands
+- Token overhead is reasonable
+- Help text is properly formatted
+
 ## AI-Friendly Documentation
 
 This project includes `CLAUDE.md`, a comprehensive development guide designed to help AI coding assistants understand the project.
@@ -304,7 +448,9 @@ Before submitting a PR:
 - [ ] Code is linted: `make lint`
 - [ ] Code is formatted: `make format`
 - [ ] Type checking passes: `make type-check`
-- [ ] Documentation is updated
+- [ ] Documentation is updated (README, USAGE, CLAUDE.md as needed)
+- [ ] New commands added to command registry (`zorac/commands.py`)
+- [ ] Requirements document created for significant features (`requirements/`)
 - [ ] CHANGELOG.md is updated
 - [ ] Commit messages are clear and descriptive
 
@@ -335,12 +481,28 @@ uv run pytest tests/test_zorac.py::TestCountTokens -vv
 uv sync --extra dev
 ```
 
+### Command Registry Issues
+
+If commands aren't showing up in `/help` or the LLM doesn't know about them:
+
+```bash
+# Verify command is in the registry
+python -c "from zorac.commands import COMMANDS; print([c['command'] for c in COMMANDS])"
+
+# Test help text generation
+python -c "from zorac.commands import get_help_text; print(get_help_text())"
+
+# Test system prompt generation
+python -c "from zorac.commands import get_system_prompt_commands; print(get_system_prompt_commands())"
+```
+
 ## Resources
 
-- [vLLM Documentation](https://docs.vllm.ai/) - vLLM inference server
+- [vLLM Documentation](https://docs.vllm.ai/en/stable/) - vLLM inference server
 - [Rich Documentation](https://rich.readthedocs.io/) - Terminal UI library
 - [OpenAI API Reference](https://platform.openai.com/docs/api-reference) - API compatibility
 - [tiktoken](https://github.com/openai/tiktoken) - Token counting library
+- [prompt-toolkit](https://python-prompt-toolkit.readthedocs.io/) - Advanced input handling
 
 ## Support
 
