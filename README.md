@@ -24,7 +24,10 @@ Perfect for developers who want a **self-hosted ChatGPT alternative** running on
 ## Features
 
 - **Interactive CLI** - Natural conversation flow with continuous input prompts
-- **Rich Terminal UI** - Beautiful formatted output with colors, panels, and markdown rendering
+- **Rich Terminal UI** - Beautiful formatted output with optimized readability
+  - Left-aligned content with 60% width constraint for comfortable reading
+  - Syntax-highlighted code blocks and formatted markdown
+  - Clean, modern design without unnecessary clutter
 - **Streaming Responses** - Real-time token streaming with live markdown display
 - **Persistent Sessions** - Automatically saves and restores conversation history
 - **Smart Context Management** - Automatically summarizes old messages when approaching token limits

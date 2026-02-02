@@ -9,8 +9,8 @@ from openai.types.chat import ChatCompletionMessageParam
 from prompt_toolkit import PromptSession
 from prompt_toolkit.formatted_text import FormattedText
 from rich import box
+from rich.console import Console, ConsoleOptions, RenderableType, RenderResult
 from rich.live import Live
-from rich.markdown import Markdown
 from rich.panel import Panel
 
 from .commands import get_help_text, get_system_prompt_commands
@@ -33,8 +33,29 @@ from .config import (
 )
 from .console import console
 from .llm import summarize_old_messages
+from .markdown_custom import LeftAlignedMarkdown as Markdown
 from .session import load_session, save_session
 from .utils import check_connection, count_tokens, print_header
+
+# Content width as percentage of console width (60% width, 40% remains unused on right)
+CONTENT_WIDTH_PCT = 0.6
+
+
+class ConstrainedWidth:
+    """Wrapper that constrains renderable to a specific width percentage"""
+
+    def __init__(self, renderable: RenderableType, width_pct: float = 0.6):
+        self.renderable = renderable
+        self.width_pct = width_pct
+
+    def __rich_console__(self, console: Console, options: ConsoleOptions) -> RenderResult:
+        """Render with constrained width"""
+        # Calculate target width as percentage of console width
+        max_width = int(console.width * self.width_pct)
+        # Update options with constrained width
+        new_options = options.update(max_width=max_width)
+        # Render the wrapped content with new width constraint
+        yield from console.render(self.renderable, new_options)
 
 
 def get_initial_system_message() -> str:
@@ -222,7 +243,10 @@ def main():
                     ):
                         summary_text = content.replace("Previous conversation summary:", "").strip()
                         console.print("\n[bold]📝 Current Conversation Summary:[/bold]\n")
-                        console.print(Panel(Markdown(summary_text), box=box.ROUNDED, expand=False))
+                        markdown_content = Markdown(summary_text, justify="left")
+                        # Constrain width to 60% of console width
+                        constrained_content = ConstrainedWidth(markdown_content, CONTENT_WIDTH_PCT)
+                        console.print(Panel(constrained_content, box=box.ROUNDED, expand=True))
                         console.print()
                         summary_found = True
 
@@ -361,7 +385,7 @@ def main():
                             max_tokens=max_output_tokens,
                             stream=True,
                         )
-                        with Live("", refresh_per_second=10, vertical_overflow="visible") as live:
+                        with Live("", refresh_per_second=10) as live:
                             for chunk in stream_response:
                                 if chunk.choices[0].delta.content:
                                     # Stop the loading animation on first chunk
@@ -371,7 +395,12 @@ def main():
 
                                     content_chunk = chunk.choices[0].delta.content
                                     full_content += content_chunk
-                                    live.update(Markdown(full_content))
+                                    markdown_content = Markdown(full_content, justify="left")
+                                    # Constrain width to 60% of console width
+                                    constrained_content = ConstrainedWidth(
+                                        markdown_content, CONTENT_WIDTH_PCT
+                                    )
+                                    live.update(constrained_content)
                     else:
                         # Non-streaming mode
                         completion_response = client.chat.completions.create(
@@ -383,7 +412,10 @@ def main():
                         )
                         status.stop()
                         full_content = completion_response.choices[0].message.content or ""
-                        console.print(Markdown(full_content))
+                        markdown_content = Markdown(full_content, justify="left")
+                        # Constrain width to 60% of console width
+                        constrained_content = ConstrainedWidth(markdown_content, CONTENT_WIDTH_PCT)
+                        console.print(constrained_content)
 
                 except Exception as e:
                     console.print(f"[red]Error receiving response: {e}[/red]")
@@ -410,12 +442,8 @@ def main():
 
             # Stats line
             console.print(
-                Panel(
-                    f"[dim]Stats: {tokens} tokens in {duration:.2f}s ({tps:.2f} tok/s) | "
-                    f"Total msgs: {len(messages)} | Tokens: ~{current_tokens}/{MAX_INPUT_TOKENS}[/dim]",
-                    box=box.SIMPLE,
-                    expand=False,
-                )
+                f"\n[dim]Stats: {tokens} tokens in {duration:.2f}s ({tps:.2f} tok/s) | "
+                f"Total: {len(messages)} msgs, ~{current_tokens}/{MAX_INPUT_TOKENS} tokens[/dim]\n"
             )
 
         except KeyboardInterrupt:

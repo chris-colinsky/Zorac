@@ -40,6 +40,7 @@ When users ask about installation, configuration, or usage, refer them to the ap
   - **console.py**: Rich console singleton for terminal output
   - **llm.py**: LLM interaction and conversation summarization
   - **main.py**: Main event loop and interactive CLI logic
+  - **markdown_custom.py**: Custom markdown renderer with left-aligned headings
   - **session.py**: Session persistence (save/load functionality)
   - **utils.py**: Utility functions (token counting, header display, connection checks)
 - **tests/**: Comprehensive test suite with 28 test cases
@@ -100,18 +101,45 @@ Zorac is organized as a modular Python package with clear separation of concerns
 **zorac/console.py** - Terminal Interface
 - `console`: Shared Rich Console instance for all terminal output
 
+**zorac/markdown_custom.py** - Custom Markdown Renderer
+- `LeftAlignedMarkdown`: Custom markdown renderer that left-aligns all headings (monkey-patches Rich's Heading class)
+- Removes centered heading panels for cleaner, more readable terminal output
+- Maintains Rich styling (bold, colored) while forcing left justification
+
 **zorac/main.py** - Main Application
 - `main()`: Interactive loop handling user input, streaming API calls, and session management
 - `get_initial_system_message()`: Generate system message with command information for LLM awareness
 - `setup_readline()`: Configure command history and persistent storage
+- `ConstrainedWidth`: Custom Rich renderable that constrains content to 60% of console width for optimal readability
 
 ### UI/UX Implementation
+
+**Core Rendering:**
 - **Rich Console**: All output uses Rich library for colored, formatted terminal display
-- **Live Streaming**: Assistant responses stream in real-time using `Live()` context manager
-- **Markdown Rendering**: All assistant responses are rendered as formatted markdown
-- **Formatted Panels**: Header and stats displayed in styled panels with rounded/simple box styles
+- **Live Streaming**: Assistant responses stream in real-time using `Live()` context manager (without `vertical_overflow` to prevent text duplication on scroll)
+- **Markdown Rendering**: All assistant responses are rendered as formatted markdown with custom left-aligned headings
+- **Formatted Panels**: Header displayed in styled panels with rounded box styles; stats shown as plain text for cleaner appearance
 - **Status Indicators**: Spinners and status messages for long-running operations (summarization)
 - **Color Coding**: Consistent color scheme (blue=user, purple=assistant, green=success, red=error, yellow=warning)
+
+**Layout & Typography:**
+- **Width Constraint**: Content constrained to 60% of console width using `ConstrainedWidth` wrapper
+  - Uses Rich's `max_width` option constraint (not padding) for stable text wrapping
+  - Renders at 60% width when printed, remains stable when window is resized wider
+  - Only reflows if window shrinks below 60% of original width
+  - Left-aligned to match "Assistant:" label (no left padding)
+- **Left-Aligned Headings**: Custom `LeftAlignedMarkdown` renderer removes centered heading panels
+  - H1: Bold white text with spacing
+  - H2: Bold light gray text with spacing
+  - H3+: Bold gray text
+  - All headings left-aligned (not centered) for better readability
+- **Code Blocks**: Syntax-highlighted code blocks automatically handled by Rich markdown
+- **Responsive Design**: Width calculated at render time; new content adapts to current console size
+
+**Implementation Details:**
+- `ConstrainedWidth` class wraps renderables and applies `max_width` via `ConsoleOptions.update()`
+- `LeftAlignedMarkdown` monkey-patches Rich's `Heading.__rich_console__` method to force left alignment
+- Width constraint approach preferred over padding to ensure stable layout on window resize
 
 ### Key Features
 - **Persistent Sessions**: Auto-saves after each assistant response to `~/.zorac/session.json`

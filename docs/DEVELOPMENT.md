@@ -33,11 +33,12 @@ zorac/
 ├── zorac/                  # Main package
 │   ├── __init__.py        # Package exports
 │   ├── __main__.py        # Module entry point
-│   ├── commands.py        # Command registry (NEW)
+│   ├── commands.py        # Command registry
 │   ├── config.py          # Configuration management
 │   ├── console.py         # Rich console singleton
 │   ├── llm.py             # LLM operations
 │   ├── main.py            # Main event loop
+│   ├── markdown_custom.py # Custom markdown renderer
 │   ├── session.py         # Session persistence
 │   └── utils.py           # Utility functions
 ├── tests/                  # Test suite
@@ -85,7 +86,7 @@ open htmlcov/index.html
 
 ### Test Coverage
 
-Current coverage: **42%** with **53 passing tests**
+Current coverage: **42%** with **34 passing tests**
 
 The test suite covers:
 - **Token counting** with various message types
@@ -93,12 +94,16 @@ The test suite covers:
 - **UI header rendering**
 - **Message summarization logic**
 - **Configuration validation**
-- **Command registry** structure and validation (NEW)
-- **Help system** (display and LLM awareness) (NEW)
+- **Command registry** structure and validation
+- **Help system** (display and LLM awareness)
 - **Integration workflows** (save/load roundtrips, help feature)
 
-**New module coverage:**
+**Module coverage:**
 - `zorac/commands.py`: 100% coverage
+- `zorac/session.py`: 100% coverage
+- `zorac/console.py`: 100% coverage
+- `zorac/llm.py`: 96% coverage
+- `zorac/markdown_custom.py`: 45% coverage (UI rendering, mostly tested via integration)
 
 **Coverage targets:**
 - Minimum 80% code coverage
@@ -197,9 +202,18 @@ make pre-commit
 - Handles API calls to vLLM server
 - Token limit management
 
+**zorac/markdown_custom.py** - Custom Markdown Renderer
+- `LeftAlignedMarkdown`: Custom markdown renderer with left-aligned headings
+- Monkey-patches Rich's `Heading.__rich_console__` to remove centered heading panels
+- Provides cleaner, more readable terminal output
+- Maintains Rich styling (bold, colored) while forcing left justification
+
 **zorac/main.py** - Main Event Loop
 - Interactive REPL with command handling
 - `get_initial_system_message()`: Generates enhanced system prompt with command info
+- `ConstrainedWidth`: Custom Rich renderable that constrains content to 60% of console width
+  - Uses `ConsoleOptions.update(max_width=...)` for stable text wrapping
+  - Provides optimal readability on all terminal sizes
 - Streaming and non-streaming response modes
 - Session auto-save after each response
 - Performance metrics tracking
@@ -269,16 +283,47 @@ MAX_INPUT_TOKENS = get_int_setting("MAX_INPUT_TOKENS", 12000)
 
 ### UI Customization
 
-Modify Rich console styling in `zorac/console.py` or panel formatting in `zorac/main.py`:
+**Panel Formatting:**
+
+Modify panel styling in `zorac/main.py`:
 
 ```python
 console.print(Panel(
     content,
     box=box.ROUNDED,
     style="cyan",
-    expand=False
+    expand=True  # Full width for left-aligned content
 ))
 ```
+
+**Content Width Constraint:**
+
+Adjust the content width percentage in `zorac/main.py`:
+
+```python
+CONTENT_WIDTH_PCT = 0.6  # 60% width, change to desired percentage
+
+# Apply to content
+constrained_content = ConstrainedWidth(markdown_content, CONTENT_WIDTH_PCT)
+```
+
+**Custom Markdown Rendering:**
+
+Modify heading styles in `zorac/markdown_custom.py`:
+
+```python
+def _left_aligned_heading_rich_console(self, console, options):
+    if self.tag == "h1":
+        yield Text(text.plain, style="bold #ffffff")  # Customize H1 style
+    elif self.tag == "h2":
+        yield Text(text.plain, style="bold #cccccc")  # Customize H2 style
+```
+
+**Design Principles:**
+- Use width constraint (not padding) for stable layout on window resize
+- Left-align all content to match "Assistant:" label
+- Remove `vertical_overflow` from Live contexts to prevent scroll duplication
+- Constrain width using `ConsoleOptions.update(max_width=...)` for proper text wrapping
 
 ## Feature Requirements
 
