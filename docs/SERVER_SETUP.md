@@ -12,7 +12,7 @@ Building your own is perfect for:
 
 **Total cost:** $0/month after initial setup. No API fees, unlimited queries.
 
-This repository documents the complete configuration for a vLLM inference server on Ubuntu 24.04 LTS, specifically tuned for NVIDIA RTX 4090 (24GB) serving Mistral-Small-24B for autonomous agentic workflows (LangChain/LangGraph) as well as how to use the dual GPU setup for fine tuning.
+This repository documents the complete configuration for a vLLM inference server on Ubuntu 24.04 LTS, specifically tuned for NVIDIA RTX 4090 (24GB) serving Mistral-Small-24B for autonomous agentic workflows (LangChain/LangGraph) as well as how to use the dual GPU setup for fine-tuning.
 
 ## Hardware Specifications
 
@@ -74,7 +74,7 @@ brew install uv
 ```
 
 ## 2. Inference Service (vLLM)
-vLLM is configured as a systemd service, pinned strictly to **GPU 1 (RTX 4090)** to utilize the `awq_marlin` quantization kernel for maximum throughput (~45 t/s).
+vLLM is configured as a systemd service, pinned strictly to **GPU 1 (RTX 4090)** to utilize the `awq_marlin` quantization kernel for maximum throughput (~60-65 t/s).
 
 ### Installation
 ```bash
@@ -84,7 +84,7 @@ source venv/bin/activate
 pip install vllm mistral-common
 ```
 
-Note: mistral-common is required for proper Tool Calling support with Mistral models.
+**Note:** mistral-common is required for proper Tool Calling support with Mistral models.
 
 ### Configuration (Systemd)
 - File: /etc/systemd/system/vllm.service
@@ -97,7 +97,7 @@ Getting a 24B model to run efficiently on a 24GB card requires specific tuning.
 - `CUDA_VISIBLE_DEVICES=1`: Pins the process to the RTX 4090.
 - `--quantization awq_marlin`: Optimized 4-bit kernel for Ada Lovelace.
 - `--max-num-seqs 32`: Prevents OOM on startup by reducing concurrency buffer.
-- `--tokenizer-mode mistral`: Enables native Tool Parsing capabilities (Must NOT use custom chat template with this mode).
+- `--tokenizer-mode mistral`: Enables native Tool Parsing capabilities (do not use custom chat template with this mode).
 - `PYTHONUNBUFFERED=1`: Ensures real-time logging.
 
 ```toml
@@ -185,7 +185,7 @@ sudo nvidia-smi -pl 350
 
 ### Installation (via uv)
 
-Follow the instructions on setup, configuration and scripts in the [TEST_TRAINING.md](TEST_TRAINING.md) file.
+For detailed multi-GPU training setup, environment configuration, and test scripts, see [TEST_TRAINING.md](TEST_TRAINING.md).
 
 ### Running a Job
 
