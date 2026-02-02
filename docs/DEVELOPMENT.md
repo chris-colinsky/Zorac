@@ -380,14 +380,150 @@ This triggers the workflow in `.github/workflows/release.yml` which:
 
 ## Making a Release
 
-1. **Update version** in `pyproject.toml`
-2. **Update CHANGELOG.md** with release notes
-3. **Run all checks**: `make all-checks`
-4. **Commit changes**: `git commit -m "Release vX.Y.Z"`
-5. **Create tag**: `git tag vX.Y.Z`
-6. **Push**: `git push origin main --tags`
+Zorac follows semantic versioning (MAJOR.MINOR.PATCH) and uses automated builds via GitHub Actions.
 
-GitHub Actions will automatically build and publish the release.
+### Semantic Versioning Guide
+
+- **MAJOR** (X.0.0): Breaking changes, incompatible API changes
+- **MINOR** (x.Y.0): New features, backward compatible
+- **PATCH** (x.y.Z): Bug fixes, documentation updates only
+
+### Release Process
+
+#### 1. Prepare the Release
+
+```bash
+# Create a release branch from main
+git checkout main
+git pull origin main
+git checkout -b release/vX.Y.Z
+
+# Update CHANGELOG.md with release notes
+# - List all new features, changes, improvements
+# - Include technical details and migration notes
+# - Follow Keep a Changelog format
+
+# Update version in pyproject.toml (if needed)
+
+# Run all quality checks
+make all-checks
+
+# Commit changes
+git add .
+git commit -m "Prepare release vX.Y.Z"
+git push origin release/vX.Y.Z
+```
+
+#### 2. Tag and Create Release PR
+
+```bash
+# Create an annotated tag
+git tag -a vX.Y.Z -m "Release version X.Y.Z
+
+Brief summary of key features/changes"
+
+# Push the tag (triggers GitHub Actions build)
+git push origin vX.Y.Z
+
+# Create a pull request to main
+gh pr create --base main --head release/vX.Y.Z --title "Release vX.Y.Z" --body "
+## Release vX.Y.Z
+
+See CHANGELOG.md for full details.
+
+### Key Changes:
+- Feature/fix 1
+- Feature/fix 2
+- Feature/fix 3
+
+This PR contains the changes for the vX.Y.Z release."
+
+# Or create PR via GitHub web UI:
+# https://github.com/chris-colinsky/zorac/compare/main...release/vX.Y.Z
+```
+
+#### 3. Automated Build
+
+When you push the tag, GitHub Actions automatically:
+- Builds binaries for Linux (x86_64) and macOS (ARM64)
+- Creates a GitHub release with binaries attached
+- Uses CHANGELOG.md content in release notes
+
+**Monitor the build:**
+- Visit: https://github.com/chris-colinsky/zorac/actions
+- Look for "Build and Release" workflow
+- Verify both Linux and macOS builds succeed
+
+#### 4. Merge Release PR
+
+```bash
+# After PR is approved and CI passes, merge via GitHub UI
+# (GitHub auto-deletes remote branch if configured)
+
+# Update local main and cleanup
+git switch main
+git pull
+git branch -d release/vX.Y.Z
+```
+
+#### 5. Verify Release
+
+- Check release page: https://github.com/chris-colinsky/zorac/releases/tag/vX.Y.Z
+- Verify binaries are attached:
+  - `zorac-linux-x86_64`
+  - `zorac-macos-arm64`
+- Test binary downloads work
+
+### Release Checklist
+
+Before creating a release:
+
+- [ ] All tests pass: `make test`
+- [ ] Code is linted: `make lint`
+- [ ] Type checking passes: `make type-check`
+- [ ] CHANGELOG.md is updated with release notes
+- [ ] Version number follows semantic versioning
+- [ ] All PRs for this release are merged
+- [ ] Documentation is up to date
+- [ ] Manual testing completed
+
+### Quick Reference Commands
+
+```bash
+# Complete release workflow
+git checkout main && git pull
+git checkout -b release/vX.Y.Z
+# Update CHANGELOG.md
+make all-checks
+git add . && git commit -m "Prepare release vX.Y.Z"
+git push origin release/vX.Y.Z
+git tag -a vX.Y.Z -m "Release version X.Y.Z"
+git push origin vX.Y.Z
+gh pr create --base main --head release/vX.Y.Z --title "Release vX.Y.Z"
+# Merge PR via GitHub UI
+git switch main && git pull
+git branch -d release/vX.Y.Z
+```
+
+### Hotfix Releases
+
+For urgent bug fixes:
+
+```bash
+# Create hotfix branch from main
+git checkout main && git pull
+git checkout -b hotfix/vX.Y.Z
+
+# Fix the bug, commit, and follow the same release process
+# Use PATCH version bump (e.g., 1.1.0 -> 1.1.1)
+```
+
+### Notes
+
+- **Tag triggers release**: Only pushing a tag creates the GitHub release
+- **Branch name flexibility**: Release branch name doesn't need to match version (but it's recommended)
+- **Pre-releases**: Use `-alpha`, `-beta`, `-rc` suffixes for pre-release versions (e.g., `v2.0.0-beta.1`)
+- **Breaking changes**: Document migration path in CHANGELOG.md and README.md
 
 ## LLM Command Awareness
 
