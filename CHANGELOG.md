@@ -5,6 +5,77 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0] - 2026-02-01
+
+### Added
+- **`/help` Command**: Interactive command to display all available commands with descriptions
+  - Shows formatted list of all commands (zorac/main.py:188-191)
+  - Includes special formatting for `/config` subcommands
+  - Provides quick reference for users without leaving the chat
+
+- **Command Registry System**: Centralized command management infrastructure (zorac/commands.py)
+  - `COMMANDS` list with TypedDict definitions for type safety
+  - `get_help_text()` - Generates formatted help text for `/help` display
+  - `get_system_prompt_commands()` - Generates command descriptions for LLM context
+  - Single source of truth for all command definitions
+
+- **LLM Command Awareness**: Enhanced system prompt with command information
+  - LLM can now answer questions about Zorac's functionality
+  - Suggests relevant commands naturally in conversation
+  - Provides usage examples and explanations when helpful
+
+- **Enhanced Markdown Rendering**: Custom renderer with improved layout (zorac/markdown_custom.py)
+  - Left-aligned headings (H1, H2, H3) instead of centered panels
+  - Cleaner, more readable terminal output
+  - Monkey-patches Rich's Heading class for consistent styling
+
+- **Content Width Constraint**: Optimal reading width for terminal output
+  - `ConstrainedWidth` class constrains content to 60% of console width (zorac/main.py:41-58)
+  - Prevents overly wide text that's hard to read
+  - Stable layout that only reflows when window shrinks below constraint
+  - Applied to all assistant responses and conversation summaries
+
+- **Multi-GPU Training Guide**: Comprehensive documentation for training setups (docs/TEST_TRAINING.md)
+  - 220-line guide covering multi-GPU configuration
+  - Detailed setup instructions and optimization tips
+  - Training best practices and troubleshooting
+
+- **Test Coverage**: New test suite for command registry (tests/test_commands.py)
+  - 154 lines of comprehensive tests
+  - Validates command structure, help text generation, and system prompt formatting
+  - Ensures command registry integrity
+
+### Changed
+- **Stats Display**: Changed from Rich Panel to plain text for cleaner appearance
+  - Stats now displayed as dim text without border
+  - Reduced visual clutter in terminal output
+
+- **System Message**: Enhanced initial system message with command information
+  - Replaces simple "You are a helpful assistant" with command-aware prompt
+  - Enables LLM to understand and reference Zorac functionality
+
+- **Documentation Updates**:
+  - **README.md**: Improved clarity and added new feature descriptions
+  - **DEVELOPMENT.md**: Expanded with 178 additional lines of developer guidance
+  - **SERVER_SETUP.md**: Restructured for better organization (213 lines modified)
+  - **USAGE.md**: Added 36 lines documenting `/help` command and new features
+  - **CLAUDE.md**: Enhanced with 46 lines covering new architecture components
+
+### Improved
+- **Code Organization**: Command definitions centralized in dedicated module
+- **Type Safety**: Full TypedDict annotations for command structures
+- **Documentation**: Comprehensive multi-GPU training documentation
+- **User Experience**: More discoverable commands via `/help` and LLM awareness
+- **Readability**: Better terminal layout with constrained width and left-aligned headings
+
+### Technical Details
+- Added `zorac/commands.py` module (134 lines)
+- Added `zorac/markdown_custom.py` module (43 lines)
+- Enhanced `zorac/main.py` with 76 additional lines
+- Added `tests/test_commands.py` (154 lines)
+- Extended `tests/test_zorac.py` with 64 additional lines
+- Total: ~1,375 additions, 132 deletions across 13 files
+
 ## [1.0.0]
 
 ### Added
@@ -100,4 +171,5 @@ For users upgrading from development versions:
 - All previous environment variables still work as before
 - New configuration options are optional with sensible defaults
 
+[1.1.0]: https://github.com/chris-colinsky/zorac/releases/tag/v1.1.0
 [1.0.0]: https://github.com/chris-colinsky/zorac/releases/tag/v1.0.0
