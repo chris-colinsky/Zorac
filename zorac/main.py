@@ -13,6 +13,7 @@ from rich.live import Live
 from rich.markdown import Markdown
 from rich.panel import Panel
 
+from .commands import get_help_text, get_system_prompt_commands
 from .config import (
     CONFIG_FILE,
     DEFAULT_CONFIG,
@@ -34,6 +35,18 @@ from .console import console
 from .llm import summarize_old_messages
 from .session import load_session, save_session
 from .utils import check_connection, count_tokens, print_header
+
+
+def get_initial_system_message() -> str:
+    """
+    Get the initial system message with command information.
+
+    Returns:
+        System message content including assistant role and command info.
+    """
+    base_message = "You are a helpful assistant."
+    command_info = get_system_prompt_commands()
+    return f"{base_message}{command_info}"
 
 
 def setup_readline():
@@ -124,12 +137,12 @@ def main():
             f"[green]✓ Loaded previous session ({len(messages)} messages, ~{token_count} tokens)[/green]"
         )
     else:
-        # Initialize conversation memory with system message
-        messages = [{"role": "system", "content": "You are a helpful assistant."}]
+        # Initialize conversation memory with system message including command info
+        messages = [{"role": "system", "content": get_initial_system_message()}]
 
     # Create prompt session for input
     # Pasted multi-line text is preserved, Enter submits
-    prompt_session = PromptSession()
+    prompt_session: PromptSession = PromptSession()
 
     # Interactive loop
     while True:
@@ -151,8 +164,13 @@ def main():
                 console.print("\n[green]✓ Session saved. Goodbye![/green]\n")
                 break
 
+            if user_input.lower() == "/help":
+                # Display all available commands
+                console.print(f"\n{get_help_text()}\n")
+                continue
+
             if user_input.lower() == "/clear":
-                messages = [{"role": "system", "content": "You are a helpful assistant."}]
+                messages = [{"role": "system", "content": get_initial_system_message()}]
                 save_session(messages)
                 console.print("\n[green]✓ Conversation history cleared and saved![/green]\n")
                 continue
