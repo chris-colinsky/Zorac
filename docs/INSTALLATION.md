@@ -1,136 +1,177 @@
 # Installation Guide
 
-This guide covers all methods for installing and running Zorac.
+This guide covers all methods for installing Zorac.
 
-## Prerequisites
+## Homebrew (macOS/Linux - Recommended)
 
-For source installation, you need `uv` for dependency management:
-
-```bash
-# Install uv (if not already installed)
-curl -LsSf https://astral.sh/uv/install.sh | sh
-
-# Or using Homebrew (macOS/Linux)
-brew install uv
-```
-
-## Binary Installation (Recommended for End Users)
-
-Download pre-built binaries from the [latest release](https://github.com/chris-colinsky/Zorac/releases/latest). **No Python installation required!**
-
-### Linux (x86_64)
+The easiest way to install Zorac on macOS or Linux:
 
 ```bash
-wget https://github.com/chris-colinsky/Zorac/releases/latest/download/zorac-linux-x86_64
-chmod +x zorac-linux-x86_64
-./zorac-linux-x86_64
+# Add the tap
+brew tap chris-colinsky/zorac
+
+# Install
+brew install zorac
+
+# Verify installation
+zorac --help
 ```
 
-### macOS (ARM64)
+### Upgrading
 
 ```bash
-wget https://github.com/chris-colinsky/Zorac/releases/latest/download/zorac-macos-arm64
-chmod +x zorac-macos-arm64
-./zorac-macos-arm64
+brew upgrade zorac
 ```
 
-**Windows Users:** Use [WSL (Windows Subsystem for Linux)](https://learn.microsoft.com/en-us/windows/wsl/install) and follow the Linux instructions above.
-
-### Optional: Add to PATH
+### Uninstalling
 
 ```bash
-# Linux/macOS
-sudo mv zorac-* /usr/local/bin/zorac
-
-# Then run from anywhere:
-zorac
+brew uninstall zorac
 ```
 
-## Source Installation
+## pipx (All Platforms - Recommended)
 
-### From Source (Development)
+[pipx](https://pipx.pypa.io/) installs Python applications in isolated environments, preventing dependency conflicts:
+
+```bash
+# Install pipx if you don't have it
+brew install pipx       # macOS/Linux
+# or: pip install pipx  # Any platform
+
+# Install zorac
+pipx install zorac
+
+# Verify installation
+zorac --help
+```
+
+### Upgrading
+
+```bash
+pipx upgrade zorac
+```
+
+### Uninstalling
+
+```bash
+pipx uninstall zorac
+```
+
+## pip (All Platforms)
+
+Standard Python package installation:
+
+```bash
+# Install
+pip install zorac
+
+# Verify installation
+zorac --help
+```
+
+### Upgrading
+
+```bash
+pip install --upgrade zorac
+```
+
+### Uninstalling
+
+```bash
+pip uninstall zorac
+```
+
+## uv (For Developers)
+
+Using the modern [uv](https://github.com/astral-sh/uv) package manager:
+
+```bash
+# Install globally
+uv tool install zorac
+
+# Or run without installing (ephemeral)
+uvx zorac
+
+# Verify installation
+zorac --help
+```
+
+### Upgrading
+
+```bash
+uv tool upgrade zorac
+```
+
+### Uninstalling
+
+```bash
+uv tool uninstall zorac
+```
+
+## From Source (Development)
+
+For contributing or development:
 
 ```bash
 # Clone the repository
 git clone https://github.com/chris-colinsky/zorac.git
 cd zorac
 
-# Install dependencies (uv will automatically create a virtual environment)
+# Install dependencies
 uv sync
 
-# Copy the example .env file and configure your server
-cp .env.example .env
-# Edit .env to set your vLLM server URL
-```
-
-### Running from Source
-
-```bash
-# Run using uv (as a module)
-uv run python -m zorac
-
-# Or run via the console script
+# Run from source
 uv run zorac
 
-# Or activate the virtual environment and run directly
+# Or activate venv and run directly
 source .venv/bin/activate
 zorac
 ```
 
-## CLI Installation (For Developers)
+See [Development Guide](DEVELOPMENT.md) for more details on contributing.
 
-Install Zorac globally as a command-line tool from source:
+## Windows Users
+
+Zorac runs on Windows via [WSL (Windows Subsystem for Linux)](https://learn.microsoft.com/en-us/windows/wsl/install):
+
+1. Install WSL: `wsl --install`
+2. Open your Linux distribution
+3. Follow the pip or pipx installation instructions above
+
+## Verification
+
+After installation, verify Zorac is working:
 
 ```bash
-# Using uv (Recommended)
-uv tool install .
-
-# Using pip
-pip install .
-
-# Then run from anywhere:
-zorac
+zorac --help
 ```
 
-## Quick Run (uvx)
+On first run, Zorac will guide you through configuration.
 
-Run Zorac without installing (ephemeral execution):
+## Data Directory
 
-```bash
-# Run directly from the current directory
-uvx --from . zorac
-```
+Zorac stores all user data in `~/.zorac/`:
 
-## Upgrading
+| File | Purpose |
+|------|---------|
+| `config.json` | Server URL, model, and settings |
+| `session.json` | Conversation history |
+| `history` | Command-line history |
 
-If you've installed Zorac via `uv tool` and pulled new changes:
-
-```bash
-# Pull latest changes
-git pull
-
-# Upgrade the installed tool
-uv tool upgrade zorac
-```
-
-## Uninstalling
-
-To remove Zorac from your system:
+To completely remove Zorac and its data:
 
 ```bash
-# If installed with uv tool
-uv tool uninstall zorac
+# Uninstall (use your installation method)
+pipx uninstall zorac   # or pip, brew, etc.
 
-# If installed with pip
-pip uninstall zorac
-
-# Optional: Remove configuration and session data
+# Remove data
 rm -rf ~/.zorac
 ```
 
 ## Next Steps
 
-After installation, see:
+After installation:
+
 - [Configuration Guide](CONFIGURATION.md) - Configure your vLLM server and settings
-- [Usage Guide](USAGE.md) - Learn how to use Zorac effectively
+- [Usage Guide](USAGE.md) - Learn Zorac commands and features
 - [Server Setup](SERVER_SETUP.md) - Set up your vLLM inference server

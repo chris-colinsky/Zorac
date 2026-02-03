@@ -1,5 +1,6 @@
 # Zorac - Self-Hosted Local LLM Chat Client
 
+[![PyPI](https://img.shields.io/pypi/v/zorac.svg)](https://pypi.org/project/zorac/)
 ![Python](https://img.shields.io/badge/python-3.13-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 ![vLLM](https://img.shields.io/badge/vLLM-compatible-purple.svg)
@@ -51,32 +52,29 @@ Perfect for developers who want a **self-hosted ChatGPT alternative** running on
 
 ## Quick Start
 
-### 1. Download Binary (Easiest)
+### 1. Install Zorac
 
-Download from the [latest release](https://github.com/chris-colinsky/Zorac/releases/latest) - no Python required!
+**Homebrew (macOS/Linux):**
 
 ```bash
-# Linux
-wget https://github.com/chris-colinsky/Zorac/releases/latest/download/zorac-linux-x86_64
-chmod +x zorac-linux-x86_64
-./zorac-linux-x86_64
-
-# macOS
-wget https://github.com/chris-colinsky/Zorac/releases/latest/download/zorac-macos-arm64
-chmod +x zorac-macos-arm64
-./zorac-macos-arm64
+brew tap chris-colinsky/zorac
+brew install zorac
 ```
 
-**macOS Security Note:** Since this binary is unsigned, macOS will block it on first run. To allow it:
-1. Try to run the binary (it will be blocked)
-2. Open **System Settings** → **Privacy & Security**
-3. Scroll down to the **Security** section
-4. Click **"Open Anyway"** next to the Zorac message
-5. Run the binary again and click **"Open"** when prompted
+**pip/pipx (All Platforms):**
 
-See [Apple's guide on opening apps from unidentified developers](https://support.apple.com/en-us/102445) for more details.
+```bash
+# Using pipx (recommended - isolated environment)
+pipx install zorac
 
-**Windows Users:** Use [WSL (Windows Subsystem for Linux)](https://learn.microsoft.com/en-us/windows/wsl/install) and follow the Linux instructions above.
+# Using pip
+pip install zorac
+
+# Using uv
+uv tool install zorac
+```
+
+**Windows Users:** Use [WSL (Windows Subsystem for Linux)](https://learn.microsoft.com/en-us/windows/wsl/install) and follow the Linux/pip instructions.
 
 ### 2. Set Up vLLM Server
 
@@ -157,7 +155,7 @@ VLLM_MODEL=stelterlab/Mistral-Small-24B-Instruct-2501-AWQ
 
 ### Technical Documentation
 
-- **[Development Guide](docs/DEVELOPMENT.md)** - Contributing, testing, building binaries
+- **[Development Guide](docs/DEVELOPMENT.md)** - Contributing, testing, release process
 - **[Server Setup](docs/SERVER_SETUP.md)** - Complete vLLM server installation and optimization
 - **[Claude.md](CLAUDE.md)** - AI assistant development guide
 - **[Changelog](CHANGELOG.md)** - Version history and release notes

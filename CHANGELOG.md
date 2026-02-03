@@ -5,6 +5,30 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - 2026-02-02
+
+### Changed
+- **Distribution**: Migrated from binary releases to PyPI + Homebrew
+  - Install via `pip install zorac` or `pipx install zorac`
+  - Install via `brew tap chris-colinsky/zorac && brew install zorac`
+  - Removed PyInstaller binary builds
+  - Automated releases via GitHub Actions with Trusted Publisher (OIDC)
+
+### Removed
+- Binary releases (zorac-linux-x86_64, zorac-macos-arm64)
+- PyInstaller build files (`zorac.spec`, `run_zorac.py`)
+
+### Improved
+- Simpler installation process - standard Python packaging
+- Automatic dependency management via pip/brew
+- Easier upgrades (`pip install --upgrade zorac` or `brew upgrade zorac`)
+- No more macOS Gatekeeper warnings for unsigned binaries
+
+### Migration Notes
+- Users of binary releases should switch to pip/pipx/brew installation
+- All functionality remains the same
+- Configuration in `~/.zorac/` is preserved
+
 ## [1.1.0] - 2026-02-01
 
 ### Added
@@ -171,5 +195,6 @@ For users upgrading from development versions:
 - All previous environment variables still work as before
 - New configuration options are optional with sensible defaults
 
+[1.2.0]: https://github.com/chris-colinsky/zorac/releases/tag/v1.2.0
 [1.1.0]: https://github.com/chris-colinsky/zorac/releases/tag/v1.1.0
 [1.0.0]: https://github.com/chris-colinsky/zorac/releases/tag/v1.0.0

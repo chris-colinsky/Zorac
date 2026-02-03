@@ -1,20 +1,40 @@
 [project]
 name = "zorac"
-version = "1.0.0"
+version = "1.2.0"
 description = "Interactive CLI chat client for vLLM inference servers with persistent sessions and automatic context management"
 readme = "README.md"
 license = { text = "MIT" }
 requires-python = ">=3.13"
 authors = [
-    { name = "Chris" }
+    { name = "Chris Colinsky", email = "chris@lunarcommand.xyz" }  # TODO: Replace with your real email
 ]
-keywords = ["vllm", "llm", "chat", "inference", "mistral", "cli"]
+keywords = [
+    "vllm",
+    "llm",
+    "chat",
+    "inference",
+    "mistral",
+    "cli",
+    "self-hosted",
+    "local-ai",
+    "chatgpt-alternative",
+    "terminal",
+    "openai",
+    "ai",
+]
 classifiers = [
     "Development Status :: 5 - Production/Stable",
+    "Environment :: Console",
     "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
     "License :: OSI Approved :: MIT License",
+    "Operating System :: MacOS",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.13",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Communications :: Chat",
+    "Topic :: Utilities",
 ]
 dependencies = [
     "openai>=2.8.1",
@@ -39,7 +59,10 @@ dev = [
 
 [project.urls]
 Homepage = "https://github.com/chris-colinsky/zorac"
+Documentation = "https://github.com/chris-colinsky/zorac/tree/main/docs"
+Repository = "https://github.com/chris-colinsky/zorac"
 Issues = "https://github.com/chris-colinsky/zorac/issues"
+Changelog = "https://github.com/chris-colinsky/zorac/blob/main/CHANGELOG.md"
 
 [build-system]
 requires = ["hatchling"]

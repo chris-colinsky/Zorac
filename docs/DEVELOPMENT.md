@@ -64,8 +64,6 @@ zorac/
 ├── CHANGELOG.md            # Version history
 ├── CONTRIBUTING.md         # Contribution guidelines
 ├── Makefile                # Development commands
-├── run_zorac.py            # Binary entry point
-├── zorac.spec              # PyInstaller spec
 └── LICENSE                 # MIT License
 ```
 
@@ -347,42 +345,16 @@ The `requirements/` directory contains detailed specifications for features. Whe
 - Better documentation
 - Prevents scope creep
 
-## Building Binaries
+## Publishing Releases
 
-### Local Build
+Zorac is distributed via PyPI and Homebrew. Releases are automated via GitHub Actions.
 
-```bash
-# Install PyInstaller
-uv pip install pyinstaller
+### Distribution Channels
 
-# Build binary
-uv run pyinstaller zorac.spec
+- **PyPI**: `pip install zorac` / `pipx install zorac`
+- **Homebrew**: `brew tap chris-colinsky/zorac && brew install zorac`
 
-# Test the binary
-./dist/zorac --help
-```
-
-### Release Build
-
-Binaries are automatically built by GitHub Actions when you push a tag:
-
-```bash
-git tag v1.0.0
-git push origin main --tags
-```
-
-This triggers the workflow in `.github/workflows/release.yml` which:
-1. Builds binaries for Linux and macOS
-2. Creates a GitHub release
-3. Attaches binaries to the release
-
-**Note:** Windows is not officially supported. Windows users should use [WSL (Windows Subsystem for Linux)](https://learn.microsoft.com/en-us/windows/wsl/install).
-
-## Making a Release
-
-Zorac follows semantic versioning (MAJOR.MINOR.PATCH) and uses automated builds via GitHub Actions.
-
-### Semantic Versioning Guide
+### Semantic Versioning
 
 - **MAJOR** (X.0.0): Breaking changes, incompatible API changes
 - **MINOR** (x.Y.0): New features, backward compatible
@@ -398,12 +370,8 @@ git checkout main
 git pull origin main
 git checkout -b release/vX.Y.Z
 
+# Update version in pyproject.toml
 # Update CHANGELOG.md with release notes
-# - List all new features, changes, improvements
-# - Include technical details and migration notes
-# - Follow Keep a Changelog format
-
-# Update version in pyproject.toml (if needed)
 
 # Run all quality checks
 make all-checks
@@ -414,65 +382,76 @@ git commit -m "Prepare release vX.Y.Z"
 git push origin release/vX.Y.Z
 ```
 
-#### 2. Tag and Create Release PR
+#### 2. Create PR and Merge
 
 ```bash
-# Create an annotated tag
-git tag -a vX.Y.Z -m "Release version X.Y.Z
-
-Brief summary of key features/changes"
-
-# Push the tag (triggers GitHub Actions build)
-git push origin vX.Y.Z
-
 # Create a pull request to main
-gh pr create --base main --head release/vX.Y.Z --title "Release vX.Y.Z" --body "
-## Release vX.Y.Z
+gh pr create --base main --head release/vX.Y.Z --title "Release vX.Y.Z"
 
-See CHANGELOG.md for full details.
-
-### Key Changes:
-- Feature/fix 1
-- Feature/fix 2
-- Feature/fix 3
-
-This PR contains the changes for the vX.Y.Z release."
-
-# Or create PR via GitHub web UI:
-# https://github.com/chris-colinsky/zorac/compare/main...release/vX.Y.Z
+# After PR is approved and CI passes, merge via GitHub UI
 ```
 
-#### 3. Automated Build
-
-When you push the tag, GitHub Actions automatically:
-- Builds binaries for Linux (x86_64) and macOS (ARM64)
-- Creates a GitHub release with binaries attached
-- Uses CHANGELOG.md content in release notes
-
-**Monitor the build:**
-- Visit: https://github.com/chris-colinsky/zorac/actions
-- Look for "Build and Release" workflow
-- Verify both Linux and macOS builds succeed
-
-#### 4. Merge Release PR
+#### 3. Tag and Release
 
 ```bash
-# After PR is approved and CI passes, merge via GitHub UI
-# (GitHub auto-deletes remote branch if configured)
-
-# Update local main and cleanup
+# Switch to main and pull the merged changes
 git switch main
 git pull
+
+# Create and push an annotated tag
+git tag -a vX.Y.Z -m "Release version X.Y.Z"
+git push origin vX.Y.Z
+
+# Clean up release branch
 git branch -d release/vX.Y.Z
 ```
 
-#### 5. Verify Release
+#### 4. Automated Pipeline
 
-- Check release page: https://github.com/chris-colinsky/zorac/releases/tag/vX.Y.Z
-- Verify binaries are attached:
-  - `zorac-linux-x86_64`
-  - `zorac-macos-arm64`
-- Test binary downloads work
+When you push the tag, GitHub Actions automatically:
+
+1. **Runs tests** - Ensures all tests pass
+2. **Builds package** - Creates wheel and sdist
+3. **Publishes to PyPI** - Via Trusted Publisher (OIDC)
+4. **Creates GitHub Release** - With package artifacts
+
+**Monitor the release:**
+- Visit: https://github.com/chris-colinsky/zorac/actions
+- Look for "Release" workflow
+- Verify PyPI publish succeeds
+
+#### 5. Update Homebrew Formula
+
+After PyPI publish, update the Homebrew tap:
+
+```bash
+# Generate updated formula with homebrew-pypi-poet
+python3 -m venv /tmp/poet-env
+source /tmp/poet-env/bin/activate
+pip install zorac homebrew-pypi-poet
+poet zorac > Formula/zorac.rb
+
+# Commit to homebrew-zorac repo
+cd path/to/homebrew-zorac
+git add Formula/zorac.rb
+git commit -m "Update zorac to vX.Y.Z"
+git push
+```
+
+#### 6. Verify Release
+
+- Check PyPI: https://pypi.org/project/zorac/
+- Check GitHub Release: https://github.com/chris-colinsky/zorac/releases/tag/vX.Y.Z
+- Test installation:
+  ```bash
+  pip install zorac==X.Y.Z
+  zorac --help
+  ```
+- Test Homebrew (after formula update):
+  ```bash
+  brew upgrade zorac
+  zorac --help
+  ```
 
 ### Release Checklist
 
@@ -481,28 +460,35 @@ Before creating a release:
 - [ ] All tests pass: `make test`
 - [ ] Code is linted: `make lint`
 - [ ] Type checking passes: `make type-check`
-- [ ] CHANGELOG.md is updated with release notes
-- [ ] Version number follows semantic versioning
+- [ ] Version updated in `pyproject.toml`
+- [ ] CHANGELOG.md updated with release notes
 - [ ] All PRs for this release are merged
 - [ ] Documentation is up to date
-- [ ] Manual testing completed
 
-### Quick Reference Commands
+After release:
+
+- [ ] PyPI page shows correct version
+- [ ] `pip install zorac` works
+- [ ] GitHub Release created with artifacts
+- [ ] Homebrew formula updated
+
+### Quick Reference
 
 ```bash
 # Complete release workflow
 git checkout main && git pull
 git checkout -b release/vX.Y.Z
-# Update CHANGELOG.md
+# Update pyproject.toml version and CHANGELOG.md
 make all-checks
 git add . && git commit -m "Prepare release vX.Y.Z"
 git push origin release/vX.Y.Z
-git tag -a vX.Y.Z -m "Release version X.Y.Z"
-git push origin vX.Y.Z
 gh pr create --base main --head release/vX.Y.Z --title "Release vX.Y.Z"
 # Merge PR via GitHub UI
 git switch main && git pull
+git tag -a vX.Y.Z -m "Release version X.Y.Z"
+git push origin vX.Y.Z
 git branch -d release/vX.Y.Z
+# Update Homebrew formula after PyPI publish
 ```
 
 ### Hotfix Releases
@@ -510,20 +496,24 @@ git branch -d release/vX.Y.Z
 For urgent bug fixes:
 
 ```bash
-# Create hotfix branch from main
 git checkout main && git pull
 git checkout -b hotfix/vX.Y.Z
-
-# Fix the bug, commit, and follow the same release process
+# Fix the bug, then follow the same release process
 # Use PATCH version bump (e.g., 1.1.0 -> 1.1.1)
 ```
 
-### Notes
+### Manual Publishing (Emergency)
 
-- **Tag triggers release**: Only pushing a tag creates the GitHub release
-- **Branch name flexibility**: Release branch name doesn't need to match version (but it's recommended)
-- **Pre-releases**: Use `-alpha`, `-beta`, `-rc` suffixes for pre-release versions (e.g., `v2.0.0-beta.1`)
-- **Breaking changes**: Document migration path in CHANGELOG.md and README.md
+If automated publishing fails:
+
+```bash
+# Build
+python -m build
+
+# Upload (requires PyPI token)
+pip install twine
+twine upload dist/*
+```
 
 ## LLM Command Awareness
 
