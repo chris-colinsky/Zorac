@@ -47,19 +47,17 @@ When users ask about installation, configuration, or usage, refer them to the ap
   - **test_zorac.py**: Unit and integration tests
   - **__init__.py**: Test package marker
 - **docs/**: User and developer documentation
-  - **INSTALLATION.md**: Complete installation guide (binary, source, development)
+  - **INSTALLATION.md**: Installation guide (Homebrew, pip, pipx, source)
   - **CONFIGURATION.md**: Configuration guide (server, token limits, model parameters)
   - **USAGE.md**: Usage guide (commands, session management, tips & tricks)
-  - **DEVELOPMENT.md**: Development guide (testing, contributing, building binaries)
+  - **DEVELOPMENT.md**: Development guide (testing, contributing, release process)
   - **SERVER_SETUP.md**: vLLM server setup and hardware optimization guide
 - **.github/workflows/**: CI/CD automation
-  - **release.yml**: Automated binary builds and GitHub releases
+  - **release.yml**: PyPI publishing and GitHub releases
 - **.env**: Configuration file for server settings (not committed to git)
 - **.env.example**: Example configuration template
 - **Makefile**: Development commands for testing, linting, formatting
 - **.pre-commit-config.yaml**: Pre-commit hooks configuration
-- **run_zorac.py**: Entry point script for PyInstaller binary builds
-- **zorac.spec**: PyInstaller specification for binary packaging
 - **README.md**: Project overview and navigation hub
 - **CHANGELOG.md**: Version history and release notes
 - **CONTRIBUTING.md**: Contribution guidelines and development workflow
@@ -315,6 +313,20 @@ For server configuration details, see **docs/SERVER_SETUP.md**. Key points:
 - **ruff** (>=0.8.0): Fast Python linter and formatter
 - **mypy** (>=1.8.0): Static type checker
 - **pre-commit** (>=3.6.0): Git hook management
+
+## Distribution
+
+Zorac is distributed via:
+- **PyPI**: `pip install zorac` / `pipx install zorac`
+- **Homebrew**: `brew tap chris-colinsky/zorac && brew install zorac`
+
+### Release Workflow
+1. Update version in `pyproject.toml`
+2. Update `CHANGELOG.md`
+3. Merge changes to `main`
+4. Push version tag (e.g., `git tag -a v1.2.0 -m "Release 1.2.0" && git push origin v1.2.0`)
+5. GitHub Actions publishes to PyPI via Trusted Publisher (OIDC)
+6. Manually update Homebrew formula in `chris-colinsky/homebrew-zorac`
 
 ## Documentation Strategy
 
