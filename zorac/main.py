@@ -70,7 +70,7 @@ def get_initial_system_message() -> str:
     return f"{base_message}{command_info}"
 
 
-class ZoracApp:
+class Zorac:
     """Main application class for Zorac CLI"""
 
     def __init__(self):
@@ -483,7 +483,7 @@ class ZoracApp:
 
 def main():
     """Application entry point"""
-    app = ZoracApp()
+    app = Zorac()
     with contextlib.suppress(KeyboardInterrupt):
         asyncio.run(app.run())
 
