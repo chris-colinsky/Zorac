@@ -1,4 +1,6 @@
-# Zorac - Self-Hosted Local LLM Chat Client
+<p align="left">
+  <img src="https://raw.githubusercontent.com/chris-colinsky/Zorac/refs/heads/release/next/img/zorac_avatar.jpg" alt="Forbin Logo" width="200">
+</p>
 
 [![PyPI](https://img.shields.io/pypi/v/zorac.svg)](https://pypi.org/project/zorac/)
 ![Python](https://img.shields.io/badge/python-3.13-blue.svg)
@@ -6,6 +8,8 @@
 ![vLLM](https://img.shields.io/badge/vLLM-compatible-purple.svg)
 ![Platform](https://img.shields.io/badge/platform-linux%20%7C%20macos-lightgrey)
 ![GPU](https://img.shields.io/badge/GPU-NVIDIA%20RTX-76B900?logo=nvidia)
+
+# Zorac - Self-Hosted Local LLM Chat Client
 
 A terminal chat client for running **local LLMs on consumer hardware**. Chat with powerful AI models like Mistral-24B privately on your own RTX 4090/3090 — no cloud, no costs, complete privacy.
 
