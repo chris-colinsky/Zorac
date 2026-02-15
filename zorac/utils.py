@@ -54,6 +54,7 @@ def print_header():
   [green]/tokens[/green]    - Show current token usage
   [green]/summarize[/green] - Force summarization of conversation
   [green]/summary[/green]   - Show current conversation summary
+  [green]/reconnect[/green] - Retry server connection
   [green]/config[/green]    - Manage configuration
   [green]/quit[/green]      - Exit the chat"""
 

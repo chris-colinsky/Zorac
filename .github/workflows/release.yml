@@ -96,3 +96,74 @@ jobs:
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  update-homebrew:
+    name: Update Homebrew Formula
+    needs: publish-pypi
+    runs-on: ubuntu-latest
+    steps:
+      - name: Wait for PyPI to index
+        run: sleep 30
+
+      - name: Get version from tag
+        id: version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+
+      - name: Fetch PyPI package info
+        id: pypi
+        run: |
+          PYPI_JSON=$(curl -s https://pypi.org/pypi/zorac/${{ steps.version.outputs.VERSION }}/json)
+          URL=$(echo "$PYPI_JSON" | jq -r '.urls[] | select(.packagetype=="sdist") | .url')
+          SHA256=$(echo "$PYPI_JSON" | jq -r '.urls[] | select(.packagetype=="sdist") | .digests.sha256')
+          echo "URL=$URL" >> $GITHUB_OUTPUT
+          echo "SHA256=$SHA256" >> $GITHUB_OUTPUT
+
+      - name: Checkout homebrew-zorac
+        uses: actions/checkout@v4
+        with:
+          repository: chris-colinsky/homebrew-zorac
+          token: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+          path: homebrew-zorac
+
+      - name: Update formula
+        run: |
+          cd homebrew-zorac
+          cat > Formula/zorac.rb << 'EOF'
+          class Zorac < Formula
+            desc "Self-hosted local LLM chat client for vLLM inference servers"
+            homepage "https://github.com/chris-colinsky/zorac"
+            url "${{ steps.pypi.outputs.URL }}"
+            sha256 "${{ steps.pypi.outputs.SHA256 }}"
+            license "MIT"
+
+            depends_on "python@3.13"
+
+            skip_clean "libexec"
+
+            def install
+              python = Formula["python@3.13"].opt_bin/"python3.13"
+
+              system python, "-m", "venv", libexec
+              system libexec/"bin/pip", "install", "--upgrade", "pip"
+              system libexec/"bin/pip", "install", "zorac==${{ steps.version.outputs.VERSION }}"
+
+              (bin/"zorac").write <<~EOS
+                #!/bin/bash
+                exec "#{libexec}/bin/zorac" "$@"
+              EOS
+            end
+
+            test do
+              assert_match "Zorac", shell_output("#{bin}/zorac --help 2>&1", 2)
+            end
+          end
+          EOF
+
+      - name: Commit and push
+        run: |
+          cd homebrew-zorac
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add Formula/zorac.rb
+          git commit -m "Update zorac to v${{ steps.version.outputs.VERSION }}"
+          git push

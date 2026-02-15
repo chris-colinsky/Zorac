@@ -144,7 +144,8 @@ def main():
     client = OpenAI(base_url=VLLM_BASE_URL, api_key=VLLM_API_KEY)
 
     # Verify connection on startup
-    if not check_connection(client):
+    is_connected = check_connection(client)
+    if not is_connected:
         console.print(
             "\n[bold yellow]Proceeding offline (some features may not work)...[/bold yellow]"
         )
@@ -352,6 +353,26 @@ def main():
                     )
 
                 continue
+
+            if user_input.lower() == "/reconnect":
+                is_connected = check_connection(client)
+                if not is_connected:
+                    console.print(
+                        "\n[bold yellow]Connection failed. Still offline.[/bold yellow]\n"
+                    )
+                else:
+                    console.print()
+                continue
+
+            # Auto-reconnect if offline when user sends a prompt
+            if not is_connected:
+                console.print()
+                is_connected = check_connection(client)
+                if not is_connected:
+                    console.print(
+                        "\n[bold yellow]Still offline. Use /reconnect to retry or check your server.[/bold yellow]\n"
+                    )
+                    continue
 
             # Add user message to conversation history
             messages.append({"role": "user", "content": user_input})

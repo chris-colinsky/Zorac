@@ -414,31 +414,16 @@ When you push the tag, GitHub Actions automatically:
 2. **Builds package** - Creates wheel and sdist
 3. **Publishes to PyPI** - Via Trusted Publisher (OIDC)
 4. **Creates GitHub Release** - With package artifacts
+5. **Updates Homebrew formula** - Automatically updates `chris-colinsky/homebrew-zorac` with the new version, URL, and SHA256
 
 **Monitor the release:**
 - Visit: https://github.com/chris-colinsky/zorac/actions
 - Look for "Release" workflow
-- Verify PyPI publish succeeds
+- Verify PyPI publish and Homebrew update succeed
 
-#### 5. Update Homebrew Formula
+**Note:** The Homebrew update requires a `HOMEBREW_TAP_TOKEN` secret (a GitHub PAT with write access to `chris-colinsky/homebrew-zorac`).
 
-After PyPI publish, update the Homebrew tap:
-
-```bash
-# Generate updated formula with homebrew-pypi-poet
-python3 -m venv /tmp/poet-env
-source /tmp/poet-env/bin/activate
-pip install zorac homebrew-pypi-poet
-poet zorac > Formula/zorac.rb
-
-# Commit to homebrew-zorac repo
-cd path/to/homebrew-zorac
-git add Formula/zorac.rb
-git commit -m "Update zorac to vX.Y.Z"
-git push
-```
-
-#### 6. Verify Release
+#### 5. Verify Release
 
 - Check PyPI: https://pypi.org/project/zorac/
 - Check GitHub Release: https://github.com/chris-colinsky/zorac/releases/tag/vX.Y.Z
@@ -470,7 +455,7 @@ After release:
 - [ ] PyPI page shows correct version
 - [ ] `pip install zorac` works
 - [ ] GitHub Release created with artifacts
-- [ ] Homebrew formula updated
+- [ ] Homebrew formula updated (automatic)
 
 ### Quick Reference
 
@@ -488,7 +473,7 @@ git switch main && git pull
 git tag -a vX.Y.Z -m "Release version X.Y.Z"
 git push origin vX.Y.Z
 git branch -d release/vX.Y.Z
-# Update Homebrew formula after PyPI publish
+# Homebrew formula updates automatically after PyPI publish
 ```
 
 ### Hotfix Releases

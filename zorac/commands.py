@@ -72,6 +72,13 @@ COMMANDS: list[CommandInfo] = [
         "via the /summarize command. If no summary exists, a message is displayed.",
     },
     {
+        "command": "/reconnect",
+        "description": "Retry connection to the vLLM server",
+        "detailed": "Attempt to reconnect to the vLLM server. Useful when the server was "
+        "unavailable at startup or the connection was lost. Shows the same connection "
+        "status as the initial startup check.",
+    },
+    {
         "command": "/config",
         "description": "Manage configuration settings",
         "detailed": "Manage Zorac configuration settings. Supports three subcommands: "

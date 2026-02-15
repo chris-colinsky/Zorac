@@ -54,6 +54,7 @@ class TestCommandRegistry:
             "/tokens",
             "/summarize",
             "/summary",
+            "/reconnect",
             "/config",
         ]
         command_names = [cmd["command"] for cmd in COMMANDS]
@@ -151,4 +152,4 @@ class TestGetSystemPromptCommands:
         # Should be informative but not wasteful of tokens
         # The actual size is ~2200 characters which is reasonable
         # This translates to roughly 400-450 tokens which is acceptable
-        assert len(result) < 2500, "System prompt may be too long and waste tokens"
+        assert len(result) < 2600, "System prompt may be too long and waste tokens"
