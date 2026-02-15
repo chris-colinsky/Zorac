@@ -20,6 +20,7 @@ DEFAULT_CONFIG = {
     "KEEP_RECENT_MESSAGES": "6",
     "TEMPERATURE": "0.1",
     "STREAM": "true",
+    "TIKTOKEN_ENCODING": "cl100k_base",
 }
 
 # File Paths
@@ -152,6 +153,7 @@ def run_first_time_setup() -> None:
         "KEEP_RECENT_MESSAGES": DEFAULT_CONFIG["KEEP_RECENT_MESSAGES"],
         "TEMPERATURE": DEFAULT_CONFIG["TEMPERATURE"],
         "STREAM": DEFAULT_CONFIG["STREAM"],
+        "TIKTOKEN_ENCODING": DEFAULT_CONFIG["TIKTOKEN_ENCODING"],
     }
 
     # Save configuration
@@ -169,6 +171,7 @@ def run_first_time_setup() -> None:
 VLLM_BASE_URL = get_setting("VLLM_BASE_URL", DEFAULT_CONFIG["VLLM_BASE_URL"]).strip().rstrip("/")
 VLLM_API_KEY = get_setting("VLLM_API_KEY", DEFAULT_CONFIG["VLLM_API_KEY"])
 VLLM_MODEL = get_setting("VLLM_MODEL", DEFAULT_CONFIG["VLLM_MODEL"])
+TIKTOKEN_ENCODING = get_setting("TIKTOKEN_ENCODING", DEFAULT_CONFIG["TIKTOKEN_ENCODING"])
 
 # Token limits (configurable)
 MAX_INPUT_TOKENS = get_int_setting("MAX_INPUT_TOKENS", 12000)

@@ -22,6 +22,7 @@ from .config import (
     KEEP_RECENT_MESSAGES,
     MAX_INPUT_TOKENS,
     SESSION_FILE,
+    TIKTOKEN_ENCODING,
     ensure_zorac_dir,
     get_bool_setting,
     get_float_setting,
@@ -66,7 +67,7 @@ def get_initial_system_message() -> str:
     return f"{base_message}{command_info}"
 
 
-class Zorac:
+class ZoracApp:
     """Main application class for Zorac CLI"""
 
     def __init__(self):
@@ -76,6 +77,7 @@ class Zorac:
         self.temperature = 0.1
         self.max_output_tokens = 4000
         self.stream_enabled = True
+        self.tiktoken_encoding = TIKTOKEN_ENCODING
 
         self.is_connected = False
         self.messages: list[ChatCompletionMessageParam] = []
@@ -118,7 +120,7 @@ class Zorac:
         loaded_messages = load_session()
         if loaded_messages:
             self.messages = loaded_messages
-            token_count = count_tokens(self.messages)
+            token_count = count_tokens(self.messages, self.tiktoken_encoding)
             console.print(
                 f"[green]✓ Loaded previous session ({len(self.messages)} messages, ~{token_count} tokens)[/green]"
             )
@@ -135,6 +137,7 @@ class Zorac:
         self.temperature = get_float_setting("TEMPERATURE", 0.1)
         self.max_output_tokens = get_int_setting("MAX_OUTPUT_TOKENS", 4000)
         self.stream_enabled = get_bool_setting("STREAM", True)
+        self.tiktoken_encoding = get_setting("TIKTOKEN_ENCODING", TIKTOKEN_ENCODING)
 
     def setup_readline(self):
         """Setup command history and persistent storage"""
@@ -209,9 +212,11 @@ class Zorac:
         self.messages.append({"role": "user", "content": user_input})
 
         # Check token count and summarize if needed
-        current_tokens = count_tokens(self.messages)
+        current_tokens = count_tokens(self.messages, self.tiktoken_encoding)
         if current_tokens > MAX_INPUT_TOKENS:
-            self.messages = summarize_old_messages(self.client, self.messages)
+            self.messages = summarize_old_messages(
+                self.client, self.messages, model=self.vllm_model
+            )
 
         start_time = time.time()
         console.print("\n[bold purple]Assistant:[/bold purple]")
@@ -265,12 +270,12 @@ class Zorac:
 
         end_time = time.time()
         duration = end_time - start_time
-        tokens = len(tiktoken.get_encoding("cl100k_base").encode(full_content))
+        tokens = len(tiktoken.get_encoding(self.tiktoken_encoding).encode(full_content))
         tps = tokens / duration if duration > 0 else 0
 
         self.messages.append({"role": "assistant", "content": full_content})
         save_session(self.messages)
-        current_tokens = count_tokens(self.messages)
+        current_tokens = count_tokens(self.messages, self.tiktoken_encoding)
 
         console.print(
             f"\n[dim]Stats: {tokens} tokens in {duration:.2f}s ({tps:.2f} tok/s) | "
@@ -305,7 +310,7 @@ class Zorac:
         loaded = load_session()
         if loaded:
             self.messages = loaded
-            token_count = count_tokens(self.messages)
+            token_count = count_tokens(self.messages, self.tiktoken_encoding)
             console.print(
                 f"\n[green]✓ Session reloaded ({len(self.messages)} messages, ~{token_count} tokens)[/green]\n"
             )
@@ -314,7 +319,7 @@ class Zorac:
 
     def cmd_tokens(self, _args: list[str]):
         """Handler for /tokens"""
-        token_count = count_tokens(self.messages)
+        token_count = count_tokens(self.messages, self.tiktoken_encoding)
         console.print("\n[bold]📊 Token usage:[/bold]")
         console.print(f"   Current: ~{token_count} tokens")
         console.print(f"   Limit: {MAX_INPUT_TOKENS} tokens")
@@ -328,7 +333,9 @@ class Zorac:
                 f"\n[yellow]⚠ Not enough messages to summarize. Need more than {KEEP_RECENT_MESSAGES + 1} messages.[/yellow]\n"
             )
         else:
-            self.messages = summarize_old_messages(self.client, self.messages, auto=False)
+            self.messages = summarize_old_messages(
+                self.client, self.messages, model=self.vllm_model, auto=False
+            )
             save_session(self.messages)
             console.print("[green]✓ Session saved with summary[/green]\n")
 
@@ -371,6 +378,7 @@ class Zorac:
             console.print(f"  KEEP_RECENT_MESSAGES: [cyan]{KEEP_RECENT_MESSAGES}[/cyan]")
             console.print(f"  TEMPERATURE:        [cyan]{self.temperature}[/cyan]")
             console.print(f"  STREAM:             [cyan]{self.stream_enabled}[/cyan]")
+            console.print(f"  TIKTOKEN_ENCODING:  [cyan]{self.tiktoken_encoding}[/cyan]")
             console.print(f"  Config File:        [dim]{CONFIG_FILE}[/dim]\n")
 
         elif args[1] == "set" and len(args) >= 4:
@@ -393,6 +401,12 @@ class Zorac:
                         int(value)
                     except ValueError:
                         console.print(f"\n[red]✗ Invalid max output tokens value: {value}[/red]\n")
+                        return
+                elif key == "TIKTOKEN_ENCODING":
+                    try:
+                        tiktoken.get_encoding(value)
+                    except ValueError:
+                        console.print(f"\n[red]✗ Invalid tiktoken encoding: {value}[/red]\n")
                         return
 
                 config = load_config()
@@ -426,6 +440,9 @@ class Zorac:
                         console.print(
                             f"[green]✓ Streaming {'enabled' if self.stream_enabled else 'disabled'}.[/green]"
                         )
+                    elif key == "TIKTOKEN_ENCODING":
+                        self.tiktoken_encoding = value
+                        console.print(f"[green]✓ Tiktoken encoding updated to {value}.[/green]")
                     console.print("\n")
 
         elif args[1] == "get" and len(args) >= 3:
@@ -439,6 +456,7 @@ class Zorac:
                 "KEEP_RECENT_MESSAGES": KEEP_RECENT_MESSAGES,
                 "TEMPERATURE": self.temperature,
                 "STREAM": self.stream_enabled,
+                "TIKTOKEN_ENCODING": self.tiktoken_encoding,
             }
             if key in settings_map:
                 console.print(f"\n{key} = {settings_map[key]}\n")
@@ -454,7 +472,7 @@ class Zorac:
 
 def main():
     """Application entry point"""
-    app = Zorac()
+    app = ZoracApp()
     app.run()
 
 

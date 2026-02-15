@@ -3,15 +3,25 @@ from openai.types.chat import ChatCompletionMessageParam
 from rich import box
 from rich.panel import Panel
 
-from .config import VLLM_BASE_URL, VLLM_MODEL
+from .config import TIKTOKEN_ENCODING, VLLM_BASE_URL, VLLM_MODEL
 from .console import console
 
 
-def count_tokens(messages: list[ChatCompletionMessageParam], model="gpt-4"):
-    """Count tokens in messages using tiktoken"""
+def count_tokens(
+    messages: list[ChatCompletionMessageParam],
+    encoding_name: str | None = None,
+):
+    """Count tokens in messages using tiktoken.
+
+    Args:
+        messages: List of chat messages to count tokens for.
+        encoding_name: Tiktoken encoding name (e.g. "cl100k_base", "o200k_base").
+                       Defaults to the configured TIKTOKEN_ENCODING.
+    """
+    resolved_encoding = encoding_name or TIKTOKEN_ENCODING
     try:
-        encoding = tiktoken.encoding_for_model(model)
-    except KeyError:
+        encoding = tiktoken.get_encoding(resolved_encoding)
+    except ValueError:
         encoding = tiktoken.get_encoding("cl100k_base")
 
     num_tokens = 0

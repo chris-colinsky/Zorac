@@ -205,7 +205,7 @@ class TestSummarizeOldMessages(unittest.TestCase):
             {"role": "user", "content": "User 1"},
             {"role": "assistant", "content": "Assistant 1"},
         ]
-        result = summarize_old_messages(self.mock_client, messages)
+        result = summarize_old_messages(self.mock_client, messages, model="test-model")
         self.assertEqual(result, messages)
         self.mock_client.chat.completions.create.assert_not_called()
 
@@ -218,7 +218,7 @@ class TestSummarizeOldMessages(unittest.TestCase):
         for i in range(KEEP_RECENT_MESSAGES + 5):
             messages.append({"role": "user", "content": f"Message {i}"})
 
-        result = summarize_old_messages(self.mock_client, messages)
+        result = summarize_old_messages(self.mock_client, messages, model="test-model")
 
         # Should have: system message + summary + KEEP_RECENT_MESSAGES
         self.assertEqual(len(result), KEEP_RECENT_MESSAGES + 2)
@@ -240,7 +240,7 @@ class TestSummarizeOldMessages(unittest.TestCase):
         for i in range(KEEP_RECENT_MESSAGES + 5):
             messages.append({"role": "user", "content": f"Message {i}"})
 
-        result = summarize_old_messages(self.mock_client, messages)
+        result = summarize_old_messages(self.mock_client, messages, model="test-model")
 
         # Should return system + recent messages on error
         self.assertEqual(len(result), KEEP_RECENT_MESSAGES + 1)
@@ -255,7 +255,7 @@ class TestSummarizeOldMessages(unittest.TestCase):
         for i in range(KEEP_RECENT_MESSAGES + 5):
             messages.append({"role": "user", "content": f"Message {i}"})
 
-        result = summarize_old_messages(self.mock_client, messages)
+        result = summarize_old_messages(self.mock_client, messages, model="test-model")
 
         # Verify summary message format (used by /summary command)
         self.assertEqual(result[1]["role"], "system")

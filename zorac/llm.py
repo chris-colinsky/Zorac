@@ -1,11 +1,11 @@
 from openai.types.chat import ChatCompletionMessageParam
 
-from .config import KEEP_RECENT_MESSAGES, VLLM_MODEL
+from .config import KEEP_RECENT_MESSAGES
 from .console import console
 
 
 def summarize_old_messages(
-    client, messages: list[ChatCompletionMessageParam], auto=True
+    client, messages: list[ChatCompletionMessageParam], *, model: str, auto: bool = True
 ) -> list[ChatCompletionMessageParam]:
     """Summarize old messages to reduce token count while preserving context"""
     if len(messages) <= KEEP_RECENT_MESSAGES + 1:  # +1 for system message
@@ -33,7 +33,7 @@ def summarize_old_messages(
         # Request summarization
         try:
             summary_response = client.chat.completions.create(
-                model=VLLM_MODEL,
+                model=model,
                 messages=[
                     {
                         "role": "system",

@@ -38,6 +38,9 @@ VLLM_MODEL=stelterlab/Mistral-Small-24B-Instruct-2501-AWQ
 # TEMPERATURE=0.1
 # STREAM=true
 
+# Token Counting (optional - defaults shown)
+# TIKTOKEN_ENCODING=cl100k_base
+
 # Optional: Custom paths
 # ZORAC_DIR=/path/to/custom/zorac/directory
 # ZORAC_SESSION_FILE=/path/to/custom/session.json
@@ -82,6 +85,25 @@ VLLM_BASE_URL="http://192.168.1.100:8000/v1" uv run zorac
 | `TEMPERATURE` | `0.1` | `0.0-2.0` | Lower = more deterministic, Higher = more creative |
 | `STREAM` | `true` | `true/false` | Enable real-time streaming with live markdown rendering |
 
+### Token Counting
+
+| Setting | Default | Description |
+|---------|---------|-------------|
+| `TIKTOKEN_ENCODING` | `cl100k_base` | Tiktoken encoding used for token counting and context management |
+
+Zorac uses [tiktoken](https://github.com/openai/tiktoken) to count tokens for context window management, auto-summarization triggers, and performance metrics. Different model families use different tokenizers, so accurate token counting requires matching the encoding to your model.
+
+**Available encodings:**
+
+| Encoding | Models | Use When |
+|----------|--------|----------|
+| `cl100k_base` | GPT-4, GPT-3.5, Mistral, most current models | Default — correct for the bundled Mistral model and most vLLM-served models |
+| `o200k_base` | GPT-4o, GPT-4o-mini | You're proxying through an OpenAI-compatible endpoint serving GPT-4o family models |
+| `p50k_base` | Codex, text-davinci-002/003 | You're running older code-focused models |
+| `r50k_base` (gpt2) | GPT-2, older GPT-3 | You're running legacy models |
+
+Most users should leave this at the default. Change it only if you switch to a model family with a different tokenizer — using the wrong encoding won't break anything, but token counts will be slightly inaccurate, which can cause auto-summarization to trigger too early or too late.
+
 ### File Locations
 
 All file locations are configurable via environment variables:
@@ -110,6 +132,9 @@ You: /config set VLLM_BASE_URL http://192.168.1.100:8000/v1
 You: /config set TEMPERATURE 0.7
 You: /config set MAX_OUTPUT_TOKENS 2000
 You: /config set STREAM false
+
+# Change token counting encoding (if using a different model family)
+You: /config set TIKTOKEN_ENCODING o200k_base
 
 # Get a specific setting
 You: /config get TEMPERATURE

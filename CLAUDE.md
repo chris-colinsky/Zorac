@@ -89,12 +89,12 @@ Zorac is organized as a modular Python package with clear separation of concerns
 - `load_session()`: Restores conversation from disk
 
 **zorac/utils.py** - Utility Functions
-- `count_tokens(messages)`: Uses tiktoken to count tokens in conversation history
+- `count_tokens(messages, encoding_name=None)`: Uses tiktoken to count tokens in conversation history (encoding defaults to configured `TIKTOKEN_ENCODING`)
 - `print_header()`: Displays formatted welcome header with Rich panels and ASCII art logo
 - `check_connection(client)`: Verifies connection to vLLM server
 
 **zorac/llm.py** - LLM Operations
-- `summarize_old_messages(client, messages)`: Auto-summarizes when approaching token limit with status spinner
+- `summarize_old_messages(client, messages, *, model, auto=True)`: Auto-summarizes when approaching token limit with status spinner
 
 **zorac/console.py** - Terminal Interface
 - `console`: Shared Rich Console instance for all terminal output
@@ -144,7 +144,7 @@ Zorac is organized as a modular Python package with clear separation of concerns
 - **Auto-Summarization**: When conversation exceeds 12k tokens, summarizes older messages while preserving the last 6 messages
 - **Streaming Responses**: Real-time token streaming with live markdown rendering
 - **Rich Terminal UI**: Colored output, formatted panels, markdown rendering, and ASCII art logo
-- **Token Tracking**: Real-time monitoring using tiktoken (cl100k_base encoding)
+- **Token Tracking**: Real-time monitoring using tiktoken (configurable encoding, default `cl100k_base`)
 - **Performance Metrics**: Displays tokens/second, response time, and token usage after each interaction
 - **Command History**: Persistent readline history stored in `~/.zorac/history`
 - **LLM Command Awareness**: System prompt includes command information, enabling the LLM to answer questions about Zorac functionality
@@ -173,6 +173,9 @@ Configuration is managed through a `.env` file in the project root. Copy `.env.e
 ### Model Parameters (Configurable)
 - `TEMPERATURE`: Default `0.1` - Controls randomness (0.0-2.0, lower = more deterministic)
 - `STREAM`: Default `true` - Enable/disable real-time token streaming with live markdown rendering
+
+### Token Counting (Configurable)
+- `TIKTOKEN_ENCODING`: Default `cl100k_base` - Tiktoken encoding for token counting (change when using a model family with a different tokenizer, e.g. `o200k_base` for GPT-4o)
 
 **Note**: All token limits and model parameters can be configured via:
 1. Environment variables in `.env` file
@@ -302,7 +305,7 @@ For server configuration details, see **docs/SERVER_SETUP.md**. Key points:
 
 ### Production Dependencies
 - **openai** (>=2.8.1): OpenAI client library for vLLM API
-- **tiktoken** (>=0.8.0): Token counting (uses cl100k_base encoding)
+- **tiktoken** (>=0.8.0): Token counting (encoding configurable via `TIKTOKEN_ENCODING`, default `cl100k_base`)
 - **python-dotenv** (>=1.0.0): Environment variable management from .env files
 - **rich** (>=14.2.0): Rich terminal formatting, markdown rendering, and live updates
 
