@@ -19,7 +19,7 @@ zorac
 
 ## Basic Interaction
 
-Simply type your message at the `You:` prompt and press Enter:
+Simply type your message at the `You:` prompt and press Enter. Commands auto-complete with Tab:
 
 ```
 You: Explain quantum entanglement
@@ -194,6 +194,8 @@ Configuration:
   KEEP_RECENT_MESSAGES: 6
   TEMPERATURE:        0.1
   STREAM:             true
+  TIKTOKEN_ENCODING:  cl100k_base
+  CODE_THEME:         monokai
   Config File:        ~/.zorac/config.json
 ```
 
@@ -208,6 +210,9 @@ You: /config set TEMPERATURE 0.7
 
 # Disable streaming
 You: /config set STREAM false
+
+# Change code syntax highlighting theme
+You: /config set CODE_THEME dracula
 ```
 
 ### Get Specific Setting

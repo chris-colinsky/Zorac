@@ -105,7 +105,7 @@ Zorac is organized as a modular Python package with clear separation of concerns
 - Maintains Rich styling (bold, colored) while forcing left justification
 
 **zorac/main.py** - Main Application
-- `ZoracApp`: Main application class using async/await architecture with `AsyncOpenAI` client
+- `Zorac`: Main application class using async/await architecture with `AsyncOpenAI` client
   - `async setup()`: Initialize client, verify connection, load session
   - `async run()`: Main interactive loop using `prompt_toolkit.prompt_async()` for non-blocking input
   - `async handle_chat()`: Process chat interactions with async streaming
@@ -151,7 +151,9 @@ Zorac is organized as a modular Python package with clear separation of concerns
 - **Rich Terminal UI**: Colored output, formatted panels, markdown rendering, and ASCII art logo
 - **Token Tracking**: Real-time monitoring using tiktoken (configurable encoding, default `cl100k_base`)
 - **Performance Metrics**: Displays tokens/second, response time, and token usage after each interaction
-- **Command History**: Persistent readline history stored in `~/.zorac/history`
+- **Command History**: Persistent history via prompt_toolkit `FileHistory` stored in `~/.zorac/history`
+- **Command Auto-Completion**: Tab-completion for all `/commands` via prompt_toolkit `WordCompleter`
+- **Configurable Code Theme**: Syntax-highlighted code blocks use configurable Pygments theme (`CODE_THEME`, default `monokai`)
 - **LLM Command Awareness**: System prompt includes command information, enabling the LLM to answer questions about Zorac functionality
 - **Interactive Commands**: `/help`, `/clear`, `/save`, `/load`, `/tokens`, `/summarize`, `/summary`, `/config`, `/quit`, `/exit`
 
@@ -168,6 +170,9 @@ Configuration is managed through a `.env` file in the project root. Copy `.env.e
 - `ZORAC_HISTORY_FILE`: Optional - Custom history file location (defaults to `~/.zorac/history`)
 - `ZORAC_CONFIG_FILE`: Optional - Custom config file location (defaults to `~/.zorac/config.json`)
 
+### Display
+- `CODE_THEME`: Default `monokai` - Pygments theme for syntax-highlighted code blocks (any Pygments style name supported)
+
 **Configuration Priority**: Environment Variable > Config File (`~/.zorac/config.json`) > Default Value
 
 ### Token Limits (Configurable)
@@ -181,6 +186,9 @@ Configuration is managed through a `.env` file in the project root. Copy `.env.e
 
 ### Token Counting (Configurable)
 - `TIKTOKEN_ENCODING`: Default `cl100k_base` - Tiktoken encoding for token counting (change when using a model family with a different tokenizer, e.g. `o200k_base` for GPT-4o)
+
+### Display (Configurable)
+- `CODE_THEME`: Default `monokai` - Pygments theme for syntax-highlighted code blocks
 
 **Note**: All token limits and model parameters can be configured via:
 1. Environment variables in `.env` file

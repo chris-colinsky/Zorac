@@ -1,7 +1,5 @@
 import asyncio
-import atexit
 import contextlib
-import readline
 import time
 from collections.abc import Callable, Coroutine
 from typing import Any
@@ -10,7 +8,9 @@ import tiktoken
 from openai import AsyncOpenAI
 from openai.types.chat import ChatCompletionMessageParam
 from prompt_toolkit import PromptSession
+from prompt_toolkit.completion import WordCompleter
 from prompt_toolkit.formatted_text import FormattedText
+from prompt_toolkit.history import FileHistory
 from prompt_toolkit.patch_stdout import patch_stdout
 from rich import box
 from rich.console import Console, ConsoleOptions, RenderableType, RenderResult
@@ -19,6 +19,7 @@ from rich.panel import Panel
 
 from .commands import get_help_text, get_system_prompt_commands
 from .config import (
+    CODE_THEME,
     CONFIG_FILE,
     DEFAULT_CONFIG,
     HISTORY_FILE,
@@ -81,11 +82,13 @@ class Zorac:
         self.max_output_tokens = 4000
         self.stream_enabled = True
         self.tiktoken_encoding = TIKTOKEN_ENCODING
+        self.code_theme = CODE_THEME
+        self.encoding = tiktoken.get_encoding(self.tiktoken_encoding)
 
         self.client: AsyncOpenAI | None = None
         self.is_connected = False
         self.messages: list[ChatCompletionMessageParam] = []
-        self.prompt_session: PromptSession = PromptSession()
+        self.prompt_session: PromptSession | None = None
         self.running = True
 
         # Command registry mapping triggers to handler methods
@@ -111,7 +114,8 @@ class Zorac:
             run_first_time_setup()
 
         self.load_configuration()
-        self.setup_readline()
+        ensure_zorac_dir()
+        self.setup_prompt_session()
 
         self.client = AsyncOpenAI(base_url=self.vllm_base_url, api_key=self.vllm_api_key)
         self.is_connected = await check_connection(self.client)
@@ -142,23 +146,25 @@ class Zorac:
         self.max_output_tokens = get_int_setting("MAX_OUTPUT_TOKENS", 4000)
         self.stream_enabled = get_bool_setting("STREAM", True)
         self.tiktoken_encoding = get_setting("TIKTOKEN_ENCODING", TIKTOKEN_ENCODING)
-
-    def setup_readline(self):
-        """Setup command history and persistent storage"""
+        self.code_theme = get_setting("CODE_THEME", CODE_THEME)
         try:
-            ensure_zorac_dir()
-            if HISTORY_FILE.exists():
-                with contextlib.suppress(OSError, PermissionError):
-                    readline.read_history_file(str(HISTORY_FILE))
-            with contextlib.suppress(OSError, PermissionError):
-                atexit.register(readline.write_history_file, str(HISTORY_FILE))
-            with contextlib.suppress(OSError, AttributeError):
-                readline.parse_and_bind("tab: complete")
-        except Exception as e:
-            console.print(f"[yellow]Warning: Could not setup command history: {e}[/yellow]")
+            self.encoding = tiktoken.get_encoding(self.tiktoken_encoding)
+        except Exception:
+            self.encoding = tiktoken.get_encoding("cl100k_base")
+
+    def setup_prompt_session(self):
+        """Setup prompt_toolkit session with history and completion"""
+        # Collect all command triggers for auto-completion
+        all_triggers = list(self.command_handlers.keys())
+
+        self.prompt_session = PromptSession(
+            history=FileHistory(str(HISTORY_FILE)),
+            completer=WordCompleter(all_triggers, ignore_case=True),
+        )
 
     async def get_multiline_input(self) -> str:
         """Get multi-line input from the user using prompt_toolkit."""
+        assert self.prompt_session is not None, "Prompt session not initialized."
         formatted_prompt = FormattedText([("ansiblue bold", "You:"), ("", " ")])
         try:
             # Use prompt_async for non-blocking input
@@ -255,7 +261,9 @@ class Zorac:
 
                                 content_chunk = chunk.choices[0].delta.content
                                 full_content += content_chunk
-                                markdown_content = Markdown(full_content, justify="left")
+                                markdown_content = Markdown(
+                                    full_content, justify="left", code_theme=self.code_theme
+                                )
                                 constrained_content = ConstrainedWidth(
                                     markdown_content, CONTENT_WIDTH_PCT
                                 )
@@ -270,7 +278,9 @@ class Zorac:
                     )
                     status.stop()
                     full_content = completion_response.choices[0].message.content or ""
-                    markdown_content = Markdown(full_content, justify="left")
+                    markdown_content = Markdown(
+                        full_content, justify="left", code_theme=self.code_theme
+                    )
                     constrained_content = ConstrainedWidth(markdown_content, CONTENT_WIDTH_PCT)
                     console.print(constrained_content)
 
@@ -280,7 +290,7 @@ class Zorac:
 
         end_time = time.time()
         duration = end_time - start_time
-        tokens = len(tiktoken.get_encoding(self.tiktoken_encoding).encode(full_content))
+        tokens = len(self.encoding.encode(full_content))
         tps = tokens / duration if duration > 0 else 0
 
         self.messages.append({"role": "assistant", "content": full_content})
@@ -356,7 +366,9 @@ class Zorac:
             if isinstance(content, str) and content.startswith("Previous conversation summary:"):
                 summary_text = content.replace("Previous conversation summary:", "").strip()
                 console.print("\n[bold]📝 Current Conversation Summary:[/bold]\n")
-                markdown_content = Markdown(summary_text, justify="left")
+                markdown_content = Markdown(
+                    summary_text, justify="left", code_theme=self.code_theme
+                )
                 constrained_content = ConstrainedWidth(markdown_content, CONTENT_WIDTH_PCT)
                 console.print(Panel(constrained_content, box=box.ROUNDED, expand=True))
                 console.print()
@@ -390,6 +402,7 @@ class Zorac:
             console.print(f"  TEMPERATURE:        [cyan]{self.temperature}[/cyan]")
             console.print(f"  STREAM:             [cyan]{self.stream_enabled}[/cyan]")
             console.print(f"  TIKTOKEN_ENCODING:  [cyan]{self.tiktoken_encoding}[/cyan]")
+            console.print(f"  CODE_THEME:         [cyan]{self.code_theme}[/cyan]")
             console.print(f"  Config File:        [dim]{CONFIG_FILE}[/dim]\n")
 
         elif args[1] == "set" and len(args) >= 4:
@@ -453,7 +466,17 @@ class Zorac:
                         )
                     elif key == "TIKTOKEN_ENCODING":
                         self.tiktoken_encoding = value
-                        console.print(f"[green]✓ Tiktoken encoding updated to {value}.[/green]")
+                        try:
+                            self.encoding = tiktoken.get_encoding(value)
+                            console.print(f"[green]✓ Tiktoken encoding updated to {value}.[/green]")
+                        except Exception:
+                            self.encoding = tiktoken.get_encoding("cl100k_base")
+                            console.print(
+                                f"[yellow]⚠ Invalid encoding {value}, falling back to cl100k_base.[/yellow]"
+                            )
+                    elif key == "CODE_THEME":
+                        self.code_theme = value
+                        console.print(f"[green]✓ Code theme updated to {value}.[/green]")
                     console.print("\n")
 
         elif args[1] == "get" and len(args) >= 3:
@@ -468,6 +491,7 @@ class Zorac:
                 "TEMPERATURE": self.temperature,
                 "STREAM": self.stream_enabled,
                 "TIKTOKEN_ENCODING": self.tiktoken_encoding,
+                "CODE_THEME": self.code_theme,
             }
             if key in settings_map:
                 console.print(f"\n{key} = {settings_map[key]}\n")

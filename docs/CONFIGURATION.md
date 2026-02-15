@@ -41,6 +41,9 @@ VLLM_MODEL=stelterlab/Mistral-Small-24B-Instruct-2501-AWQ
 # Token Counting (optional - defaults shown)
 # TIKTOKEN_ENCODING=cl100k_base
 
+# Display (optional - defaults shown)
+# CODE_THEME=monokai
+
 # Optional: Custom paths
 # ZORAC_DIR=/path/to/custom/zorac/directory
 # ZORAC_SESSION_FILE=/path/to/custom/session.json
@@ -84,6 +87,14 @@ VLLM_BASE_URL="http://192.168.1.100:8000/v1" uv run zorac
 |---------|---------|-------|-------------|
 | `TEMPERATURE` | `0.1` | `0.0-2.0` | Lower = more deterministic, Higher = more creative |
 | `STREAM` | `true` | `true/false` | Enable real-time streaming with live markdown rendering |
+
+### Display
+
+| Setting | Default | Description |
+|---------|---------|-------------|
+| `CODE_THEME` | `monokai` | Pygments theme for syntax-highlighted code blocks |
+
+Common themes: `monokai`, `dracula`, `github-dark`, `one-dark`, `solarized-dark`, `solarized-light`, `nord`, `gruvbox-dark`, `native`. Any Pygments style name is supported.
 
 ### Token Counting
 
@@ -135,6 +146,9 @@ You: /config set STREAM false
 
 # Change token counting encoding (if using a different model family)
 You: /config set TIKTOKEN_ENCODING o200k_base
+
+# Change code syntax highlighting theme
+You: /config set CODE_THEME dracula
 
 # Get a specific setting
 You: /config get TEMPERATURE

@@ -21,6 +21,7 @@ DEFAULT_CONFIG = {
     "TEMPERATURE": "0.1",
     "STREAM": "true",
     "TIKTOKEN_ENCODING": "cl100k_base",
+    "CODE_THEME": "monokai",
 }
 
 # File Paths
@@ -154,6 +155,7 @@ def run_first_time_setup() -> None:
         "TEMPERATURE": DEFAULT_CONFIG["TEMPERATURE"],
         "STREAM": DEFAULT_CONFIG["STREAM"],
         "TIKTOKEN_ENCODING": DEFAULT_CONFIG["TIKTOKEN_ENCODING"],
+        "CODE_THEME": DEFAULT_CONFIG["CODE_THEME"],
     }
 
     # Save configuration
@@ -172,6 +174,7 @@ VLLM_BASE_URL = get_setting("VLLM_BASE_URL", DEFAULT_CONFIG["VLLM_BASE_URL"]).st
 VLLM_API_KEY = get_setting("VLLM_API_KEY", DEFAULT_CONFIG["VLLM_API_KEY"])
 VLLM_MODEL = get_setting("VLLM_MODEL", DEFAULT_CONFIG["VLLM_MODEL"])
 TIKTOKEN_ENCODING = get_setting("TIKTOKEN_ENCODING", DEFAULT_CONFIG["TIKTOKEN_ENCODING"])
+CODE_THEME = get_setting("CODE_THEME", DEFAULT_CONFIG["CODE_THEME"])
 
 # Token limits (configurable)
 MAX_INPUT_TOKENS = get_int_setting("MAX_INPUT_TOKENS", 12000)
