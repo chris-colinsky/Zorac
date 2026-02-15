@@ -1,14 +1,17 @@
+import asyncio
 import atexit
 import contextlib
 import readline
 import time
-from collections.abc import Callable
+from collections.abc import Callable, Coroutine
+from typing import Any
 
 import tiktoken
-from openai import OpenAI
+from openai import AsyncOpenAI
 from openai.types.chat import ChatCompletionMessageParam
 from prompt_toolkit import PromptSession
 from prompt_toolkit.formatted_text import FormattedText
+from prompt_toolkit.patch_stdout import patch_stdout
 from rich import box
 from rich.console import Console, ConsoleOptions, RenderableType, RenderResult
 from rich.live import Live
@@ -79,12 +82,14 @@ class ZoracApp:
         self.stream_enabled = True
         self.tiktoken_encoding = TIKTOKEN_ENCODING
 
+        self.client: AsyncOpenAI | None = None
         self.is_connected = False
         self.messages: list[ChatCompletionMessageParam] = []
+        self.prompt_session: PromptSession = PromptSession()
         self.running = True
 
         # Command registry mapping triggers to handler methods
-        self.command_handlers: dict[str, Callable[[list[str]], None]] = {
+        self.command_handlers: dict[str, Callable[[list[str]], Coroutine[Any, Any, None]]] = {
             "/quit": self.cmd_quit,
             "/exit": self.cmd_quit,
             "/help": self.cmd_help,
@@ -98,9 +103,8 @@ class ZoracApp:
             "/reconnect": self.cmd_reconnect,
         }
 
-    def setup(self):
+    async def setup(self):
         """Initial application setup"""
-        self.prompt_session = PromptSession()
         print_header()
 
         if is_first_run():
@@ -109,8 +113,8 @@ class ZoracApp:
         self.load_configuration()
         self.setup_readline()
 
-        self.client = OpenAI(base_url=self.vllm_base_url, api_key=self.vllm_api_key)
-        self.is_connected = check_connection(self.client)
+        self.client = AsyncOpenAI(base_url=self.vllm_base_url, api_key=self.vllm_api_key)
+        self.is_connected = await check_connection(self.client)
 
         if not self.is_connected:
             console.print(
@@ -120,7 +124,7 @@ class ZoracApp:
         loaded_messages = load_session()
         if loaded_messages:
             self.messages = loaded_messages
-            token_count = count_tokens(self.messages, self.tiktoken_encoding)
+            token_count = count_tokens(self.messages)
             console.print(
                 f"[green]✓ Loaded previous session ({len(self.messages)} messages, ~{token_count} tokens)[/green]"
             )
@@ -153,24 +157,30 @@ class ZoracApp:
         except Exception as e:
             console.print(f"[yellow]Warning: Could not setup command history: {e}[/yellow]")
 
-    def get_multiline_input(self) -> str:
+    async def get_multiline_input(self) -> str:
         """Get multi-line input from the user using prompt_toolkit."""
-        print()
         formatted_prompt = FormattedText([("ansiblue bold", "You:"), ("", " ")])
         try:
-            user_input = self.prompt_session.prompt(formatted_prompt)
+            # Use prompt_async for non-blocking input
+            user_input = await self.prompt_session.prompt_async(formatted_prompt)
             return str(user_input).strip()
         except (EOFError, KeyboardInterrupt):
             return ""
 
-    def run(self):
+    async def run(self):
         """Main interactive loop"""
-        self.setup()
+        await self.setup()
 
         while self.running:
             try:
-                user_input = self.get_multiline_input()
+                # Use patch_stdout to ensure rich output doesn't break prompt-toolkit
+                with patch_stdout():
+                    print()
+                    user_input = await self.get_multiline_input()
+
                 if not user_input:
+                    if not self.running:
+                        break
                     continue
 
                 # Process commands
@@ -178,7 +188,7 @@ class ZoracApp:
                     parts = user_input.split()
                     cmd = parts[0].lower()
                     if cmd in self.command_handlers:
-                        self.command_handlers[cmd](parts)
+                        await self.command_handlers[cmd](parts)
                         continue
                     else:
                         console.print(
@@ -187,10 +197,10 @@ class ZoracApp:
                         continue
 
                 # Process normal chat
-                self.handle_chat(user_input)
+                await self.handle_chat(user_input)
 
             except EOFError:
-                self.cmd_quit([])
+                await self.cmd_quit([])
             except KeyboardInterrupt:
                 console.print(
                     "\n\n[yellow]Interrupted. Type /quit to exit or continue chatting.[/yellow]\n"
@@ -198,11 +208,13 @@ class ZoracApp:
             except Exception as e:
                 console.print(f"\n[red]Error: {e}[/red]\n")
 
-    def handle_chat(self, user_input: str):
+    async def handle_chat(self, user_input: str):
         """Process a standard chat interaction"""
+        assert self.client is not None, "Client not initialized. Call setup() first."
+
         if not self.is_connected:
             console.print()
-            self.is_connected = check_connection(self.client)
+            self.is_connected = await check_connection(self.client)
             if not self.is_connected:
                 console.print(
                     "\n[bold yellow]Still offline. Use /reconnect to retry or check your server.[/bold yellow]\n"
@@ -212,11 +224,9 @@ class ZoracApp:
         self.messages.append({"role": "user", "content": user_input})
 
         # Check token count and summarize if needed
-        current_tokens = count_tokens(self.messages, self.tiktoken_encoding)
+        current_tokens = count_tokens(self.messages)
         if current_tokens > MAX_INPUT_TOKENS:
-            self.messages = summarize_old_messages(
-                self.client, self.messages, model=self.vllm_model
-            )
+            self.messages = await summarize_old_messages(self.client, self.messages)
 
         start_time = time.time()
         console.print("\n[bold purple]Assistant:[/bold purple]")
@@ -229,7 +239,7 @@ class ZoracApp:
         ) as status:
             try:
                 if self.stream_enabled:
-                    stream_response = self.client.chat.completions.create(
+                    stream_response = await self.client.chat.completions.create(
                         model=self.vllm_model,
                         messages=self.messages,
                         temperature=self.temperature,
@@ -237,7 +247,7 @@ class ZoracApp:
                         stream=True,
                     )
                     with Live("", refresh_per_second=10) as live:
-                        for chunk in stream_response:
+                        async for chunk in stream_response:
                             if chunk.choices[0].delta.content:
                                 if not first_chunk_received:
                                     status.stop()
@@ -251,7 +261,7 @@ class ZoracApp:
                                 )
                                 live.update(constrained_content)
                 else:
-                    completion_response = self.client.chat.completions.create(
+                    completion_response = await self.client.chat.completions.create(
                         model=self.vllm_model,
                         messages=self.messages,
                         temperature=self.temperature,
@@ -275,7 +285,7 @@ class ZoracApp:
 
         self.messages.append({"role": "assistant", "content": full_content})
         save_session(self.messages)
-        current_tokens = count_tokens(self.messages, self.tiktoken_encoding)
+        current_tokens = count_tokens(self.messages)
 
         console.print(
             f"\n[dim]Stats: {tokens} tokens in {duration:.2f}s ({tps:.2f} tok/s) | "
@@ -284,62 +294,61 @@ class ZoracApp:
 
     # --- Command Handlers ---
 
-    def cmd_quit(self, _args: list[str]):
+    async def cmd_quit(self, _args: list[str]):
         """Handler for /quit and /exit"""
         save_session(self.messages)
         console.print("\n[green]✓ Session saved. Goodbye![/green]\n")
         self.running = False
 
-    def cmd_help(self, _args: list[str]):
+    async def cmd_help(self, _args: list[str]):
         """Handler for /help"""
         console.print(f"\n{get_help_text()}\n")
 
-    def cmd_clear(self, _args: list[str]):
+    async def cmd_clear(self, _args: list[str]):
         """Handler for /clear"""
         self.messages = [{"role": "system", "content": get_initial_system_message()}]
         save_session(self.messages)
         console.print("\n[green]✓ Conversation history cleared and saved![/green]\n")
 
-    def cmd_save(self, _args: list[str]):
+    async def cmd_save(self, _args: list[str]):
         """Handler for /save"""
         if save_session(self.messages):
             console.print(f"\n[green]✓ Session saved to {SESSION_FILE}[/green]\n")
 
-    def cmd_load(self, _args: list[str]):
+    async def cmd_load(self, _args: list[str]):
         """Handler for /load"""
         loaded = load_session()
         if loaded:
             self.messages = loaded
-            token_count = count_tokens(self.messages, self.tiktoken_encoding)
+            token_count = count_tokens(self.messages)
             console.print(
                 f"\n[green]✓ Session reloaded ({len(self.messages)} messages, ~{token_count} tokens)[/green]\n"
             )
         else:
             console.print("\n[red]✗ No saved session found[/red]\n")
 
-    def cmd_tokens(self, _args: list[str]):
+    async def cmd_tokens(self, _args: list[str]):
         """Handler for /tokens"""
-        token_count = count_tokens(self.messages, self.tiktoken_encoding)
+        token_count = count_tokens(self.messages)
         console.print("\n[bold]📊 Token usage:[/bold]")
         console.print(f"   Current: ~{token_count} tokens")
         console.print(f"   Limit: {MAX_INPUT_TOKENS} tokens")
         console.print(f"   Remaining: ~{MAX_INPUT_TOKENS - token_count} tokens")
         console.print(f"   Messages: {len(self.messages)}\n")
 
-    def cmd_summarize(self, _args: list[str]):
+    async def cmd_summarize(self, _args: list[str]):
         """Handler for /summarize"""
+        assert self.client is not None, "Client not initialized."
         if len(self.messages) <= KEEP_RECENT_MESSAGES + 1:
             console.print(
                 f"\n[yellow]⚠ Not enough messages to summarize. Need more than {KEEP_RECENT_MESSAGES + 1} messages.[/yellow]\n"
             )
         else:
-            self.messages = summarize_old_messages(
-                self.client, self.messages, model=self.vllm_model, auto=False
-            )
+            self.messages = await summarize_old_messages(self.client, self.messages, auto=False)
             save_session(self.messages)
             console.print("[green]✓ Session saved with summary[/green]\n")
 
-    def cmd_summary(self, _args: list[str]):
+    async def cmd_summary(self, _args: list[str]):
         """Handler for /summary"""
         summary_found = False
         if len(self.messages) > 1 and self.messages[1].get("role") == "system":
@@ -358,16 +367,18 @@ class ZoracApp:
                 "\n[yellow]ℹ No summary exists yet. Use /summarize to create one.[/yellow]\n"
             )
 
-    def cmd_reconnect(self, _args: list[str]):
+    async def cmd_reconnect(self, _args: list[str]):
         """Handler for /reconnect"""
-        self.is_connected = check_connection(self.client)
+        assert self.client is not None, "Client not initialized."
+        self.is_connected = await check_connection(self.client)
         if not self.is_connected:
             console.print("\n[bold yellow]Connection failed. Still offline.[/bold yellow]\n")
         else:
             console.print()
 
-    def cmd_config(self, args: list[str]):
+    async def cmd_config(self, args: list[str]):
         """Handler for /config"""
+        assert self.client is not None, "Client not initialized."
         if len(args) == 1 or args[1] == "list":
             console.print("\n[bold]Configuration:[/bold]")
             console.print(f"  VLLM_BASE_URL:      [cyan]{self.vllm_base_url}[/cyan]")
@@ -473,7 +484,8 @@ class ZoracApp:
 def main():
     """Application entry point"""
     app = ZoracApp()
-    app.run()
+    with contextlib.suppress(KeyboardInterrupt):
+        asyncio.run(app.run())
 
 
 if __name__ == "__main__":

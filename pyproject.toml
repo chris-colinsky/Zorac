@@ -50,6 +50,7 @@ zorac = "zorac.main:main"
 [project.optional-dependencies]
 dev = [
     "pytest>=8.0.0",
+    "pytest-asyncio>=0.23.0",
     "pytest-cov>=4.1.0",
     "pytest-mock>=3.12.0",
     "ruff>=0.8.0",
@@ -76,6 +77,7 @@ testpaths = ["tests"]
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
+asyncio_mode = "auto"
 addopts = [
     "-v",
     "--cov=zorac",
@@ -124,7 +126,7 @@ ignore = [
 ]
 
 [tool.ruff.lint.per-file-ignores]
-"tests/*" = ["ARG", "S101"]
+"tests/*" = ["ARG", "S101", "SIM115"]
 
 [tool.mypy]
 python_version = "3.13"

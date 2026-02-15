@@ -1,4 +1,5 @@
 import tiktoken
+from openai import AsyncOpenAI
 from openai.types.chat import ChatCompletionMessageParam
 from rich import box
 from rich.panel import Panel
@@ -72,11 +73,11 @@ def print_header():
     console.print(Panel(header_text, box=box.ROUNDED, expand=False))
 
 
-def check_connection(client) -> bool:
+async def check_connection(client: AsyncOpenAI) -> bool:
     """Verify connection to the vLLM server"""
     try:
         with console.status("[bold green]Verifying connection...[/bold green]"):
-            client.models.list()
+            await client.models.list()
         console.print("[green]✓ Connection verified[/green]")
         return True
     except Exception as e:

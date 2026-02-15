@@ -91,10 +91,10 @@ Zorac is organized as a modular Python package with clear separation of concerns
 **zorac/utils.py** - Utility Functions
 - `count_tokens(messages, encoding_name=None)`: Uses tiktoken to count tokens in conversation history (encoding defaults to configured `TIKTOKEN_ENCODING`)
 - `print_header()`: Displays formatted welcome header with Rich panels and ASCII art logo
-- `check_connection(client)`: Verifies connection to vLLM server
+- `async check_connection(client: AsyncOpenAI)`: Verifies connection to vLLM server (async)
 
 **zorac/llm.py** - LLM Operations
-- `summarize_old_messages(client, messages, *, model, auto=True)`: Auto-summarizes when approaching token limit with status spinner
+- `async summarize_old_messages(client: AsyncOpenAI, messages, auto=True)`: Auto-summarizes when approaching token limit with status spinner. Uses `VLLM_MODEL` from config.
 
 **zorac/console.py** - Terminal Interface
 - `console`: Shared Rich Console instance for all terminal output
@@ -105,9 +105,13 @@ Zorac is organized as a modular Python package with clear separation of concerns
 - Maintains Rich styling (bold, colored) while forcing left justification
 
 **zorac/main.py** - Main Application
-- `main()`: Interactive loop handling user input, streaming API calls, and session management
+- `ZoracApp`: Main application class using async/await architecture with `AsyncOpenAI` client
+  - `async setup()`: Initialize client, verify connection, load session
+  - `async run()`: Main interactive loop using `prompt_toolkit.prompt_async()` for non-blocking input
+  - `async handle_chat()`: Process chat interactions with async streaming
+  - Command handlers: All `async def cmd_*()` methods for `/help`, `/quit`, `/config`, etc.
+- `main()`: Entry point using `asyncio.run()` to start the async application
 - `get_initial_system_message()`: Generate system message with command information for LLM awareness
-- `setup_readline()`: Configure command history and persistent storage
 - `ConstrainedWidth`: Custom Rich renderable that constrains content to 60% of console width for optimal readability
 
 ### UI/UX Implementation
@@ -140,9 +144,10 @@ Zorac is organized as a modular Python package with clear separation of concerns
 - Width constraint approach preferred over padding to ensure stable layout on window resize
 
 ### Key Features
+- **Async Architecture**: Built on `asyncio` with `AsyncOpenAI` client and `prompt_toolkit.prompt_async()` for non-blocking I/O
 - **Persistent Sessions**: Auto-saves after each assistant response to `~/.zorac/session.json`
 - **Auto-Summarization**: When conversation exceeds 12k tokens, summarizes older messages while preserving the last 6 messages
-- **Streaming Responses**: Real-time token streaming with live markdown rendering
+- **Streaming Responses**: Real-time async token streaming with live markdown rendering
 - **Rich Terminal UI**: Colored output, formatted panels, markdown rendering, and ASCII art logo
 - **Token Tracking**: Real-time monitoring using tiktoken (configurable encoding, default `cl100k_base`)
 - **Performance Metrics**: Displays tokens/second, response time, and token usage after each interaction
@@ -263,13 +268,19 @@ make pre-commit
 
 ### Test Coverage
 
-The test suite covers:
+The test suite uses pytest with pytest-asyncio (mode=auto) for async test support. It covers:
 - **TestCountTokens**: Token counting with various message types and edge cases
 - **TestSessionManagement**: Save/load functionality, error handling, invalid inputs
 - **TestPrintHeader**: UI header rendering
-- **TestSummarizeOldMessages**: Message summarization logic and API error handling
-- **TestConfiguration**: Configuration validation
-- **TestIntegration**: End-to-end workflows (save/load roundtrips, token consistency)
+- **TestSummarizeOldMessages**: Async message summarization logic and API error handling
+- **TestSummarizeFormat**: Summary message format and extraction
+- **TestConfiguration**: Configuration validation and defaults
+- **TestConfigurationExtended**: Config bounds and save_config behavior
+- **TestDirectoryManagement**: `ensure_zorac_dir` creation logic
+- **TestIntegration**: End-to-end workflows (save/load roundtrips)
+- **TestTokenCountAfterSaveLoad**: Token count consistency across persistence
+- **TestCheckConnectionAsync**: Async connection verification (success and failure)
+- **TestHelpFeatureIntegration**: System message, help output, and token budget
 
 **Coverage targets:**
 - Minimum 80% code coverage
@@ -304,13 +315,15 @@ For server configuration details, see **docs/SERVER_SETUP.md**. Key points:
 ## Dependencies
 
 ### Production Dependencies
-- **openai** (>=2.8.1): OpenAI client library for vLLM API
+- **openai** (>=2.8.1): OpenAI client library for vLLM API (uses `AsyncOpenAI` for async operations)
 - **tiktoken** (>=0.8.0): Token counting (encoding configurable via `TIKTOKEN_ENCODING`, default `cl100k_base`)
 - **python-dotenv** (>=1.0.0): Environment variable management from .env files
 - **rich** (>=14.2.0): Rich terminal formatting, markdown rendering, and live updates
+- **prompt-toolkit** (>=3.0.0): Advanced terminal input with `prompt_async()` for non-blocking user input
 
 ### Development Dependencies
 - **pytest** (>=8.0.0): Testing framework
+- **pytest-asyncio** (>=0.23.0): Async test support (configured with `asyncio_mode = "auto"`)
 - **pytest-cov** (>=4.1.0): Coverage reporting for pytest
 - **pytest-mock** (>=3.12.0): Mock fixtures for pytest
 - **ruff** (>=0.8.0): Fast Python linter and formatter
