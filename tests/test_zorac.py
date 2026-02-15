@@ -466,7 +466,7 @@ class TestHelpFeatureIntegration(unittest.TestCase):
         self.assertGreater(len(help_output), 100)
         # Verify it contains expected content
         self.assertIn("/help", help_output)
-        self.assertIn("/quit or /exit", help_output)
+        self.assertIn("/quit, /exit", help_output)
         self.assertIn("Available Commands:", help_output)
 
     def test_system_message_token_overhead_reasonable(self):

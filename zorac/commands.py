@@ -12,7 +12,7 @@ from typing import TypedDict
 class CommandInfo(TypedDict):
     """Type definition for command information."""
 
-    command: str  # Command name (e.g., "/help", "/quit or /exit")
+    triggers: list[str]  # Command triggers (e.g., ["/help"] or ["/quit", "/exit"])
     description: str  # Short one-line description for /help display
     detailed: str  # Detailed explanation for system prompt
 
@@ -20,66 +20,66 @@ class CommandInfo(TypedDict):
 # Centralized registry of all interactive commands
 COMMANDS: list[CommandInfo] = [
     {
-        "command": "/help",
+        "triggers": ["/help"],
         "description": "Show all available commands",
         "detailed": "Display a list of all available interactive commands with descriptions. "
         "This helps users discover and understand the functionality available in Zorac.",
     },
     {
-        "command": "/quit or /exit",
+        "triggers": ["/quit", "/exit"],
         "description": "Save and exit the application",
         "detailed": "Save the current conversation session to disk and exit Zorac. "
         "The session will be automatically restored on the next run.",
     },
     {
-        "command": "/clear",
+        "triggers": ["/clear"],
         "description": "Reset conversation to initial system message",
         "detailed": "Clear the entire conversation history and reset to a fresh session "
         "with only the initial system message. The cleared session is automatically saved to disk.",
     },
     {
-        "command": "/save",
+        "triggers": ["/save"],
         "description": "Manually save session to disk",
         "detailed": "Manually save the current conversation session to ~/.zorac/session.json. "
         "Sessions are auto-saved after each assistant response, but this command allows "
         "explicit saves at any time.",
     },
     {
-        "command": "/load",
+        "triggers": ["/load"],
         "description": "Reload session from disk",
         "detailed": "Reload the conversation session from ~/.zorac/session.json, discarding "
         "any unsaved changes in the current session. Useful for reverting to the last saved state.",
     },
     {
-        "command": "/tokens",
+        "triggers": ["/tokens"],
         "description": "Display current token usage statistics",
         "detailed": "Show detailed token usage information including current token count, "
         "token limit, remaining capacity, and message count. Helps users monitor "
         "conversation size and predict when auto-summarization will occur.",
     },
     {
-        "command": "/summarize",
+        "triggers": ["/summarize"],
         "description": "Force conversation summarization",
         "detailed": "Force summarization of the conversation history, even if the token limit "
         "hasn't been reached. The LLM creates a concise summary of older messages while "
         "preserving the most recent messages. Useful for condensing long conversations manually.",
     },
     {
-        "command": "/summary",
+        "triggers": ["/summary"],
         "description": "Display the current conversation summary",
         "detailed": "Display the current conversation summary if one exists. The summary is "
         "created automatically when the conversation exceeds the token limit, or manually "
         "via the /summarize command. If no summary exists, a message is displayed.",
     },
     {
-        "command": "/reconnect",
+        "triggers": ["/reconnect"],
         "description": "Retry connection to the vLLM server",
         "detailed": "Attempt to reconnect to the vLLM server. Useful when the server was "
         "unavailable at startup or the connection was lost. Shows the same connection "
         "status as the initial startup check.",
     },
     {
-        "command": "/config",
+        "triggers": ["/config"],
         "description": "Manage configuration settings",
         "detailed": "Manage Zorac configuration settings. Supports three subcommands: "
         "'/config list' shows all current configuration values, "
@@ -100,16 +100,19 @@ def get_help_text() -> str:
     lines = ["[bold]Available Commands:[/bold]"]
 
     for cmd in COMMANDS:
+        # Join triggers for display (e.g., "/quit, /exit")
+        trigger_str = ", ".join(cmd["triggers"])
+
         # Special handling for /config to show subcommands
-        if cmd["command"] == "/config":
-            lines.append(f"  [cyan]{cmd['command']}[/cyan]            - {cmd['description']}")
+        if "/config" in cmd["triggers"]:
+            lines.append(f"  [cyan]{trigger_str}[/cyan]            - {cmd['description']}")
             lines.append("    [cyan]/config list[/cyan]     - Show current configuration")
             lines.append("    [cyan]/config set[/cyan]      - Set a configuration value")
             lines.append("    [cyan]/config get[/cyan]      - Get a specific configuration value")
         else:
             # Calculate padding for alignment
-            padding = " " * (18 - len(cmd["command"]))
-            lines.append(f"  [cyan]{cmd['command']}[/cyan]{padding}- {cmd['description']}")
+            padding = " " * (18 - len(trigger_str))
+            lines.append(f"  [cyan]{trigger_str}[/cyan]{padding}- {cmd['description']}")
 
     return "\n".join(lines)
 
@@ -130,7 +133,8 @@ def get_system_prompt_commands() -> str:
     ]
 
     for cmd in COMMANDS:
-        lines.append(f"{cmd['command']} - {cmd['detailed']}")
+        trigger_str = " or ".join(cmd["triggers"])
+        lines.append(f"{trigger_str} - {cmd['detailed']}")
         lines.append("")
 
     lines.append(

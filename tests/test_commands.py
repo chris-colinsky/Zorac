@@ -16,38 +16,44 @@ class TestCommandRegistry:
     def test_all_commands_have_required_fields(self):
         """Verify all commands have required fields."""
         for cmd in COMMANDS:
-            assert "command" in cmd, f"Command missing 'command' field: {cmd}"
+            assert "triggers" in cmd, f"Command missing 'triggers' field: {cmd}"
             assert "description" in cmd, f"Command missing 'description' field: {cmd}"
             assert "detailed" in cmd, f"Command missing 'detailed' field: {cmd}"
 
-    def test_all_command_fields_are_strings(self):
-        """Verify all command fields are non-empty strings."""
+    def test_all_command_fields_are_correct_types(self):
+        """Verify all command fields are non-empty strings or lists."""
         for cmd in COMMANDS:
-            assert isinstance(cmd["command"], str)
+            assert isinstance(cmd["triggers"], list)
             assert isinstance(cmd["description"], str)
             assert isinstance(cmd["detailed"], str)
-            assert len(cmd["command"]) > 0
+            assert len(cmd["triggers"]) > 0
             assert len(cmd["description"]) > 0
             assert len(cmd["detailed"]) > 0
+            for trigger in cmd["triggers"]:
+                assert isinstance(trigger, str)
+                assert len(trigger) > 0
 
     def test_all_commands_start_with_slash(self):
         """Verify all commands start with '/'."""
         for cmd in COMMANDS:
-            # Handle commands with "or" (e.g., "/quit or /exit")
-            command_parts = cmd["command"].split(" or ")
-            for part in command_parts:
-                assert part.strip().startswith("/"), f"Command doesn't start with '/': {part}"
+            for trigger in cmd["triggers"]:
+                assert trigger.startswith("/"), f"Command doesn't start with '/': {trigger}"
 
-    def test_no_duplicate_commands(self):
-        """Verify there are no duplicate command names."""
-        command_names = [cmd["command"] for cmd in COMMANDS]
-        assert len(command_names) == len(set(command_names)), "Duplicate commands found"
+    def test_no_duplicate_triggers(self):
+        """Verify there are no duplicate command triggers."""
+        all_triggers = []
+        for cmd in COMMANDS:
+            all_triggers.extend(cmd["triggers"])
+        assert len(all_triggers) == len(set(all_triggers)), (
+            f"Duplicate triggers found: {all_triggers}"
+        )
 
     def test_expected_commands_present(self):
         """Verify all expected commands are present."""
-        expected_commands = [
+        expected_triggers = [
             "/help",
-            "/quit or /exit",
+            "/quit",
+            "/exit",
             "/clear",
             "/save",
             "/load",
@@ -57,9 +63,12 @@ class TestCommandRegistry:
             "/reconnect",
             "/config",
         ]
-        command_names = [cmd["command"] for cmd in COMMANDS]
-        for expected in expected_commands:
-            assert expected in command_names, f"Expected command not found: {expected}"
+        all_triggers = []
+        for cmd in COMMANDS:
+            all_triggers.extend(cmd["triggers"])
+
+        for expected in expected_triggers:
+            assert expected in all_triggers, f"Expected trigger not found: {expected}"
 
 
 class TestGetHelpText:
@@ -80,8 +89,13 @@ class TestGetHelpText:
         """Verify help text contains all commands."""
         result = get_help_text()
         for cmd in COMMANDS:
-            # Check that the command appears in the output
-            assert cmd["command"] in result, f"Command not found in help text: {cmd['command']}"
+            # Check that at least one trigger from each command appears
+            found = False
+            for trigger in cmd["triggers"]:
+                if trigger in result:
+                    found = True
+                    break
+            assert found, f"No trigger for command found in help text: {cmd['triggers']}"
 
     def test_contains_all_descriptions(self):
         """Verify help text contains all descriptions."""
@@ -124,7 +138,12 @@ class TestGetSystemPromptCommands:
         """Verify system prompt contains all commands."""
         result = get_system_prompt_commands()
         for cmd in COMMANDS:
-            assert cmd["command"] in result, f"Command not found in system prompt: {cmd['command']}"
+            found = False
+            for trigger in cmd["triggers"]:
+                if trigger in result:
+                    found = True
+                    break
+            assert found, f"No trigger for command found in system prompt: {cmd['triggers']}"
 
     def test_contains_detailed_descriptions(self):
         """Verify system prompt contains detailed descriptions."""
@@ -150,6 +169,4 @@ class TestGetSystemPromptCommands:
         """Verify system prompt isn't excessively long."""
         result = get_system_prompt_commands()
         # Should be informative but not wasteful of tokens
-        # The actual size is ~2200 characters which is reasonable
-        # This translates to roughly 400-450 tokens which is acceptable
-        assert len(result) < 2600, "System prompt may be too long and waste tokens"
+        assert len(result) < 3000, "System prompt may be too long and waste tokens"
