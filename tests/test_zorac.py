@@ -317,7 +317,8 @@ class TestHelpFeatureIntegration:
     def test_get_initial_system_message_includes_commands(self):
         """Test that initial system message includes command information"""
         system_message = get_initial_system_message()
-        assert "You are a helpful assistant." in system_message
+        assert "You are Zorac, a helpful AI assistant." in system_message
+        assert "Today's date is" in system_message
         assert "Available Commands:" in system_message
 
     def test_help_text_formatted_correctly(self):

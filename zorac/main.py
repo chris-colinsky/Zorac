@@ -1,5 +1,6 @@
 import asyncio
 import contextlib
+import datetime
 import time
 from collections.abc import Callable, Coroutine
 from typing import Any
@@ -8,7 +9,7 @@ import tiktoken
 from openai import AsyncOpenAI
 from openai.types.chat import ChatCompletionMessageParam
 from prompt_toolkit import PromptSession
-from prompt_toolkit.completion import WordCompleter
+from prompt_toolkit.completion import Completer, Completion
 from prompt_toolkit.formatted_text import FormattedText
 from prompt_toolkit.history import FileHistory
 from prompt_toolkit.patch_stdout import patch_stdout
@@ -64,9 +65,25 @@ class ConstrainedWidth:
         yield from console.render(self.renderable, new_options)
 
 
+class SlashCommandCompleter(Completer):
+    """Completer that only suggests commands when input starts with /"""
+
+    def __init__(self, commands: list[str]):
+        self.commands = sorted(commands)
+
+    def get_completions(self, document, _complete_event):
+        text = document.text_before_cursor.lstrip()
+        if not text.startswith("/"):
+            return
+        for command in self.commands:
+            if command.lower().startswith(text.lower()):
+                yield Completion(command, start_position=-len(text))
+
+
 def get_initial_system_message() -> str:
-    """Get the initial system message with command information."""
-    base_message = "You are a helpful assistant."
+    """Get the initial system message with command information and current date."""
+    today = datetime.date.today().strftime("%A, %B %d, %Y")
+    base_message = f"You are Zorac, a helpful AI assistant. Today's date is {today}."
     command_info = get_system_prompt_commands()
     return f"{base_message}{command_info}"
 
@@ -90,6 +107,8 @@ class Zorac:
         self.messages: list[ChatCompletionMessageParam] = []
         self.prompt_session: PromptSession | None = None
         self.running = True
+        self.session_start_time: float = 0.0
+        self._current_date: datetime.date | None = None
 
         # Command registry mapping triggers to handler methods
         self.command_handlers: dict[str, Callable[[list[str]], Coroutine[Any, Any, None]]] = {
@@ -125,6 +144,8 @@ class Zorac:
                 "\n[bold yellow]Proceeding offline (some features may not work)...[/bold yellow]"
             )
 
+        self.session_start_time = time.time()
+
         loaded_messages = load_session()
         if loaded_messages:
             self.messages = loaded_messages
@@ -134,6 +155,9 @@ class Zorac:
             )
         else:
             self.messages = [{"role": "system", "content": get_initial_system_message()}]
+
+        # Ensure system message has current date (updates loaded sessions from previous days)
+        self._update_system_message()
 
     def load_configuration(self):
         """Load settings from configuration"""
@@ -159,8 +183,20 @@ class Zorac:
 
         self.prompt_session = PromptSession(
             history=FileHistory(str(HISTORY_FILE)),
-            completer=WordCompleter(all_triggers, ignore_case=True),
+            completer=SlashCommandCompleter(all_triggers),
         )
+
+    def _update_system_message(self):
+        """Update the system message with current date."""
+        self._current_date = datetime.date.today()
+        if self.messages and self.messages[0].get("role") == "system":
+            self.messages[0] = {"role": "system", "content": get_initial_system_message()}
+
+    def _refresh_system_date(self):
+        """Check if date has changed since last update and refresh if needed."""
+        today = datetime.date.today()
+        if today != self._current_date:
+            self._update_system_message()
 
     async def get_multiline_input(self) -> str:
         """Get multi-line input from the user using prompt_toolkit."""
@@ -217,6 +253,9 @@ class Zorac:
     async def handle_chat(self, user_input: str):
         """Process a standard chat interaction"""
         assert self.client is not None, "Client not initialized. Call setup() first."
+
+        # Keep system message date current for long-running sessions
+        self._refresh_system_date()
 
         if not self.is_connected:
             console.print()
@@ -317,6 +356,7 @@ class Zorac:
     async def cmd_clear(self, _args: list[str]):
         """Handler for /clear"""
         self.messages = [{"role": "system", "content": get_initial_system_message()}]
+        self._current_date = datetime.date.today()
         save_session(self.messages)
         console.print("\n[green]✓ Conversation history cleared and saved![/green]\n")
 
@@ -340,7 +380,7 @@ class Zorac:
     async def cmd_tokens(self, _args: list[str]):
         """Handler for /tokens"""
         token_count = count_tokens(self.messages)
-        console.print("\n[bold]📊 Token usage:[/bold]")
+        console.print("\n[bold] Token usage:[/bold]")
         console.print(f"   Current: ~{token_count} tokens")
         console.print(f"   Limit: {MAX_INPUT_TOKENS} tokens")
         console.print(f"   Remaining: ~{MAX_INPUT_TOKENS - token_count} tokens")
@@ -365,7 +405,7 @@ class Zorac:
             content = self.messages[1].get("content", "")
             if isinstance(content, str) and content.startswith("Previous conversation summary:"):
                 summary_text = content.replace("Previous conversation summary:", "").strip()
-                console.print("\n[bold]📝 Current Conversation Summary:[/bold]\n")
+                console.print("\n[bold] Current Conversation Summary:[/bold]\n")
                 markdown_content = Markdown(
                     summary_text, justify="left", code_theme=self.code_theme
                 )
