@@ -1,3 +1,5 @@
+from importlib.metadata import PackageNotFoundError, version
+
 import tiktoken
 from openai import AsyncOpenAI
 from openai.types.chat import ChatCompletionMessageParam
@@ -6,6 +8,14 @@ from rich.panel import Panel
 
 from .config import TIKTOKEN_ENCODING, VLLM_BASE_URL, VLLM_MODEL
 from .console import console
+
+
+def get_version() -> str:
+    """Get the installed package version."""
+    try:
+        return version("zorac")
+    except PackageNotFoundError:
+        return "dev"
 
 
 def count_tokens(
@@ -55,7 +65,8 @@ def print_header():
         [dim italic]intelligence running on localhost[/dim italic]
 """
 
-    header_text = f"""[dim]Connected to: {VLLM_BASE_URL}[/dim]
+    header_text = f"""[dim]Zorac v{get_version()}[/dim]
+[dim]Connected to: {VLLM_BASE_URL}[/dim]
 [dim]Model: {VLLM_MODEL}[/dim]
 
 [bold]Commands:[/bold]
