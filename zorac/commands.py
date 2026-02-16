@@ -133,6 +133,7 @@ def get_help_text() -> str:
       - Manual padding for column alignment (since Rich's console.print
         handles the markup stripping for width calculation)
       - Special handling for /config to show its subcommands indented
+      - Keyboard shortcuts section for Ctrl+C and Ctrl+D
 
     Returns:
         Formatted string with Rich markup, ready for console.print().
@@ -155,6 +156,14 @@ def get_help_text() -> str:
             # 18 chars accommodates the longest trigger string ("/quit, /exit" = 12 chars).
             padding = " " * (18 - len(trigger_str))
             lines.append(f"  [cyan]{trigger_str}[/cyan]{padding}- {cmd['description']}")
+
+    # Keyboard shortcuts section
+    lines.append("")
+    lines.append("[bold]Keyboard Shortcuts:[/bold]")
+    lines.append("  [cyan]Ctrl+C[/cyan]            - Interrupt streaming response")
+    lines.append("  [cyan]Ctrl+D[/cyan]            - Save and exit")
+    lines.append("  [cyan]Shift+Enter[/cyan]       - Insert a newline")
+    lines.append("  [cyan]Tab[/cyan]               - Accept command suggestion")
 
     return "\n".join(lines)
 
@@ -208,6 +217,14 @@ def get_system_prompt_commands() -> str:
         lines.append(f"{trigger_str} - {cmd['detailed']}")
         lines.append("")
 
+    lines.append("Keyboard Shortcuts:")
+    lines.append(
+        "Ctrl+C - Interrupt a streaming response. The partial response is discarded and the user can continue chatting."
+    )
+    lines.append("Ctrl+D - Save the session and exit the application.")
+    lines.append("Shift+Enter - Insert a newline in the input (Enter submits).")
+    lines.append("Tab - Accept an inline command suggestion.")
+    lines.append("")
     lines.append(
         "When users ask about functionality, help them understand these commands naturally. "
         "Suggest relevant commands when appropriate and provide usage examples when helpful."

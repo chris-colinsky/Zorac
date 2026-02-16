@@ -101,7 +101,8 @@ All commands start with `/`:
 | `/summary` | Display the current conversation summary (if exists) |
 | `/config` | Manage configuration settings (list, set, get) |
 | `/quit` or `/exit` | Save session and exit |
-| `Ctrl+C` | Interrupt current operation without exiting |
+| `Ctrl+C` | Interrupt streaming response |
+| `Ctrl+D` | Save and exit |
 
 ## Session Management
 
@@ -254,13 +255,13 @@ The auto-summarization kicks in at 12k tokens, but you can manually `/clear` any
 
 ### Interrupt Long Responses
 
-Press `Ctrl+C` to interrupt long responses without losing your session:
+Press `Ctrl+C` to interrupt a streaming response without losing your session. The partial response is discarded and you can continue chatting immediately:
 
 ```bash
 You: Write a very long essay...
 Assistant: [Starts streaming...]
 ^C
-Interrupted. Type /quit to exit or continue chatting.
+Response interrupted.
 ```
 
 ### Adjust Response Style

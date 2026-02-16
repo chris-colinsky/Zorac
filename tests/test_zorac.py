@@ -553,14 +553,14 @@ class TestHelpFeatureIntegration:
         """Test that the system message doesn't consume too many tokens.
 
         The system message is always present and counts against the token
-        limit. If it grows too large (>500 tokens), it would significantly
+        limit. If it grows too large (>600 tokens), it would significantly
         reduce the space available for actual conversation. This test ensures
         the command information doesn't bloat the system message.
         """
         system_message = get_initial_system_message()
         messages: list[ChatCompletionMessageParam] = [{"role": "system", "content": system_message}]
         token_count = count_tokens(messages)
-        assert token_count < 500, "System message with commands uses too many tokens"
+        assert token_count < 600, "System message with commands uses too many tokens"
         assert token_count > 50  # Should have meaningful content
 
 
