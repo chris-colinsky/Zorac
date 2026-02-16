@@ -1,5 +1,5 @@
 <p align="left">
-  <img src="https://raw.githubusercontent.com/chris-colinsky/Zorac/refs/heads/release/next/img/zorac_avatar.jpg" alt="Forbin Logo" width="200">
+  <img src="https://raw.githubusercontent.com/chris-colinsky/Zorac/refs/heads/main/img/zorac_avatar.jpg" alt="ZOrac Logo" width="200">
 </p>
 
 [![PyPI](https://img.shields.io/pypi/v/zorac.svg)](https://pypi.org/project/zorac/)
