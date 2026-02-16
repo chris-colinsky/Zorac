@@ -151,7 +151,7 @@ class CommandHandlersMixin:
             f"   Current: ~{token_count} tokens\n"
             f"   Limit: {MAX_INPUT_TOKENS} tokens\n"
             f"   Remaining: ~{MAX_INPUT_TOKENS - token_count} tokens\n"
-            f"   Messages: {len(self.messages)}"
+            f"   Messages: {len(self.messages)}\n"
         )
 
     async def cmd_summarize(self, _args: list[str]):
@@ -165,7 +165,7 @@ class CommandHandlersMixin:
         if len(self.messages) <= KEEP_RECENT_MESSAGES + 1:
             self._log_system(
                 f"Not enough messages to summarize. Need more than "
-                f"{KEEP_RECENT_MESSAGES + 1} messages.\n",
+                f"{KEEP_RECENT_MESSAGES + 1} messages.",
                 style="yellow",
             )
         else:
@@ -173,7 +173,7 @@ class CommandHandlersMixin:
             # instead of "token limit approaching"
             await self._summarize_messages(auto=False)
             save_session(self.messages)
-            self._log_system("Session saved with summary\n", style="green")
+            self._log_system("Session saved with summary", style="green")
 
     async def cmd_summary(self, _args: list[str]):
         """Handle /summary — display the current conversation summary if one exists.
