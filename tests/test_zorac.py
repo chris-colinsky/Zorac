@@ -740,15 +740,18 @@ class TestStatsBar:
 
     async def test_stats_bar_initial_state(self):
         """Test that the stats bar shows 'Ready' before any chat interaction."""
+        from unittest.mock import AsyncMock, patch
+
         from textual.widgets import Static
 
         from zorac.main import ZoracApp
 
         app = ZoracApp()
-        async with app.run_test(size=(80, 24)):
-            stats_bar = app.query_one("#stats-bar", Static)
-            text = stats_bar.content
-            assert "Ready" in text
+        with patch.object(app, "_check_connection", new_callable=AsyncMock, return_value=True):
+            async with app.run_test(size=(80, 24)):
+                stats_bar = app.query_one("#stats-bar", Static)
+                text = stats_bar.content
+                assert "Ready" in text
 
     async def test_stats_bar_after_stats_update(self):
         """Test that the stats bar shows full stats after updating."""
