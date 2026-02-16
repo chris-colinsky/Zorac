@@ -163,6 +163,7 @@ make pre-commit
 - **tiktoken** (>=0.8.0): Token counting for accurate usage tracking
 - **python-dotenv** (>=1.0.0): Environment variable management from .env files
 - **rich** (>=14.2.0): Rich terminal formatting, markdown rendering, and live updates
+- **textual** (>=1.0.0): Modern TUI framework for the full terminal user interface
 
 ### Development Dependencies
 
@@ -206,15 +207,13 @@ make pre-commit
 - Provides cleaner, more readable terminal output
 - Maintains Rich styling (bold, colored) while forcing left justification
 
-**zorac/main.py** - Main Event Loop
-- Interactive REPL with command handling
+**zorac/main.py** - Textual TUI application with chat log, stats bar, and input widgets
 - `get_initial_system_message()`: Generates enhanced system prompt with command info
-- `ConstrainedWidth`: Custom Rich renderable that constrains content to 60% of console width
-  - Uses `ConsoleOptions.update(max_width=...)` for stable text wrapping
-  - Provides optimal readability on all terminal sizes
+- Textual Input widget with SuggestFromList for slash command autocomplete
+- Real-time streaming via `Markdown.get_stream()` with persistent stats bar
 - Streaming and non-streaming response modes
 - Session auto-save after each response
-- Performance metrics tracking
+- Stats bar widget (`Static#stats-bar`) docked to bottom for always-visible metrics
 
 **zorac/session.py** - Session Persistence
 - `save_session()`: Saves conversation to JSON
@@ -294,17 +293,6 @@ console.print(Panel(
 ))
 ```
 
-**Content Width Constraint:**
-
-Adjust the content width percentage in `zorac/main.py`:
-
-```python
-CONTENT_WIDTH_PCT = 0.6  # 60% width, change to desired percentage
-
-# Apply to content
-constrained_content = ConstrainedWidth(markdown_content, CONTENT_WIDTH_PCT)
-```
-
 **Custom Markdown Rendering:**
 
 Modify heading styles in `zorac/markdown_custom.py`:
@@ -318,10 +306,12 @@ def _left_aligned_heading_rich_console(self, console, options):
 ```
 
 **Design Principles:**
-- Use width constraint (not padding) for stable layout on window resize
+- Full-width output for assistant responses
 - Left-align all content to match "Assistant:" label
-- Remove `vertical_overflow` from Live contexts to prevent scroll duplication
-- Constrain width using `ConsoleOptions.update(max_width=...)` for proper text wrapping
+- Use `Markdown.get_stream()` during streaming for real-time content updates
+- `Static#stats-bar` displays real-time metrics during streaming
+- Stats bar updates in real-time during streaming, persists after response
+- Stats persist in bottom toolbar between interactions
 
 ## Feature Requirements
 
@@ -414,31 +404,16 @@ When you push the tag, GitHub Actions automatically:
 2. **Builds package** - Creates wheel and sdist
 3. **Publishes to PyPI** - Via Trusted Publisher (OIDC)
 4. **Creates GitHub Release** - With package artifacts
+5. **Updates Homebrew formula** - Automatically updates `chris-colinsky/homebrew-zorac` with the new version, URL, and SHA256
 
 **Monitor the release:**
 - Visit: https://github.com/chris-colinsky/zorac/actions
 - Look for "Release" workflow
-- Verify PyPI publish succeeds
+- Verify PyPI publish and Homebrew update succeed
 
-#### 5. Update Homebrew Formula
+**Note:** The Homebrew update requires a `HOMEBREW_TAP_TOKEN` secret (a GitHub PAT with write access to `chris-colinsky/homebrew-zorac`).
 
-After PyPI publish, update the Homebrew tap:
-
-```bash
-# Generate updated formula with homebrew-pypi-poet
-python3 -m venv /tmp/poet-env
-source /tmp/poet-env/bin/activate
-pip install zorac homebrew-pypi-poet
-poet zorac > Formula/zorac.rb
-
-# Commit to homebrew-zorac repo
-cd path/to/homebrew-zorac
-git add Formula/zorac.rb
-git commit -m "Update zorac to vX.Y.Z"
-git push
-```
-
-#### 6. Verify Release
+#### 5. Verify Release
 
 - Check PyPI: https://pypi.org/project/zorac/
 - Check GitHub Release: https://github.com/chris-colinsky/zorac/releases/tag/vX.Y.Z
@@ -470,7 +445,7 @@ After release:
 - [ ] PyPI page shows correct version
 - [ ] `pip install zorac` works
 - [ ] GitHub Release created with artifacts
-- [ ] Homebrew formula updated
+- [ ] Homebrew formula updated (automatic)
 
 ### Quick Reference
 
@@ -488,7 +463,7 @@ git switch main && git pull
 git tag -a vX.Y.Z -m "Release version X.Y.Z"
 git push origin vX.Y.Z
 git branch -d release/vX.Y.Z
-# Update Homebrew formula after PyPI publish
+# Homebrew formula updates automatically after PyPI publish
 ```
 
 ### Hotfix Releases
@@ -628,7 +603,7 @@ python -c "from zorac.commands import get_system_prompt_commands; print(get_syst
 - [Rich Documentation](https://rich.readthedocs.io/) - Terminal UI library
 - [OpenAI API Reference](https://platform.openai.com/docs/api-reference) - API compatibility
 - [tiktoken](https://github.com/openai/tiktoken) - Token counting library
-- [prompt-toolkit](https://python-prompt-toolkit.readthedocs.io/) - Advanced input handling
+- [Textual](https://textual.textualize.io/) - Modern TUI framework
 
 ## Support
 

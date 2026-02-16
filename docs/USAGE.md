@@ -19,7 +19,7 @@ zorac
 
 ## Basic Interaction
 
-Simply type your message at the `You:` prompt and press Enter:
+Simply type your message at the `You:` prompt and press Enter. Commands auto-complete with Tab:
 
 ```
 You: Explain quantum entanglement
@@ -31,10 +31,13 @@ The assistant will respond, and the conversation is automatically saved.
 
 ### Multi-line Input
 
-Zorac supports pasting multi-line text from your clipboard:
+Zorac supports multi-line input via Shift+Enter and clipboard pasting:
 
 - **Press Enter** - Submit your prompt
+- **Press Shift+Enter** - Insert a newline (works in iTerm2, kitty, WezTerm, and most modern terminals)
 - **Paste multi-line text** - Works seamlessly from clipboard, newlines are preserved
+
+The input bar auto-resizes from 1 to 5 lines as you type.
 
 Example:
 ```
@@ -46,7 +49,7 @@ def fibonacci(n):
 [Press Enter to submit]
 ```
 
-Simply copy any multi-line text and paste it into the prompt. The newlines will be preserved, and you can submit with Enter.
+Simply type or paste multi-line text. The newlines will be preserved, and you can submit with Enter.
 
 ## Getting Help
 
@@ -98,7 +101,8 @@ All commands start with `/`:
 | `/summary` | Display the current conversation summary (if exists) |
 | `/config` | Manage configuration settings (list, set, get) |
 | `/quit` or `/exit` | Save session and exit |
-| `Ctrl+C` | Interrupt current operation without exiting |
+| `Ctrl+C` | Interrupt streaming response |
+| `Ctrl+D` | Save and exit |
 
 ## Session Management
 
@@ -194,6 +198,8 @@ Configuration:
   KEEP_RECENT_MESSAGES: 6
   TEMPERATURE:        0.1
   STREAM:             true
+  TIKTOKEN_ENCODING:  cl100k_base
+  CODE_THEME:         monokai
   Config File:        ~/.zorac/config.json
 ```
 
@@ -208,6 +214,9 @@ You: /config set TEMPERATURE 0.7
 
 # Disable streaming
 You: /config set STREAM false
+
+# Change code syntax highlighting theme
+You: /config set CODE_THEME dracula
 ```
 
 ### Get Specific Setting
@@ -246,13 +255,13 @@ The auto-summarization kicks in at 12k tokens, but you can manually `/clear` any
 
 ### Interrupt Long Responses
 
-Press `Ctrl+C` to interrupt long responses without losing your session:
+Press `Ctrl+C` to interrupt a streaming response without losing your session. The partial response is discarded and you can continue chatting immediately:
 
 ```bash
 You: Write a very long essay...
 Assistant: [Starts streaming...]
 ^C
-Interrupted. Type /quit to exit or continue chatting.
+Response interrupted.
 ```
 
 ### Adjust Response Style
