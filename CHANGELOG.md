@@ -5,36 +5,88 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.3.0] - 2026-02-XX
 
 ### Changed
-- **UI Framework**: Migrated from Rich/prompt_toolkit REPL to Textual TUI framework
-  - Full terminal user interface with scrollable chat log, persistent stats bar, and input bar
-  - Stats bar pinned to bottom — always visible, never scrolls away
-  - Real-time streaming stats via `Markdown.get_stream()` for efficient batched updates
-  - Slash command autocomplete via `SuggestFromList` ghost text suggestions
-  - Manual command history with Up/Down arrow navigation and file persistence
+- **UI Framework**: Complete migration from Rich/prompt_toolkit REPL to Textual TUI framework
+  - Full terminal user interface with scrollable chat log, persistent stats bar, and multiline input bar
   - `ZoracApp(App)` replaces `Zorac` class as the main application controller
-  - First-time setup runs before Textual alternate screen (since `input()` is incompatible)
+  - Stats bar (`Static#stats-bar`) pinned to bottom — always visible, never scrolls away
+  - Real-time streaming via `Markdown.get_stream()` for efficient batched markdown rendering
+  - First-time setup runs before Textual alternate screen (since `input()` is incompatible with alt screen)
+
+- **Architecture**: Refactored monolithic main.py into mixin-based composition
+  - `CommandHandlersMixin` (handlers.py) — all `cmd_*` command handler methods
+  - `StreamingMixin` (streaming.py) — `_stream_response` worker for LLM streaming
+  - `HistoryMixin` (history.py) — command history load/save and Up/Down arrow navigation
+  - `ChatInput` widget (widgets.py) — multiline input with command suggestions
+  - `ZoracApp(CommandHandlersMixin, StreamingMixin, HistoryMixin, App)` composes all modules
+
+- **Async Throughout**: Migrated from synchronous to async I/O
+  - `OpenAI` (sync) → `AsyncOpenAI` for non-blocking API calls
+  - `check_connection()`, `summarize_old_messages()`, and all command handlers are now async
+  - Worker-based streaming with `@work(exclusive=True)` for cancellable, non-blocking responses
+
+- **Command Registry**: Changed from `"command"` key to `"triggers"` list in CommandInfo TypedDict
+  - Allows multiple triggers per command (e.g., `/quit` and `/exit` as aliases)
+
+- **Token Counting**: `count_tokens()` now uses configurable encoding via `TIKTOKEN_ENCODING`
+  - Signature changed from `count_tokens(messages, model="gpt-4")` to `count_tokens(messages, encoding_name=None)`
+  - Falls back to `cl100k_base` if configured encoding is invalid
+
+- **Documentation**: Comprehensive docstrings added to every module, class, and function
+  - README.md restructured for clarity and conciseness
+  - docs/USAGE.md updated with keyboard shortcuts and new features
+  - docs/DEVELOPMENT.md updated for Textual TUI architecture
+  - CLAUDE.md expanded with full architecture overview
+
+### Added
+- **Textual TUI**: `textual>=1.0.0` dependency for modern terminal user interface
+  - `VerticalScroll#chat-log` — scrollable chat area with mounted message widgets
+  - `ChatInput#user-input` — multiline input (1-5 lines auto-resize) with Enter to submit, Shift+Enter for newlines
+  - `Static#stats-bar` — persistent performance metrics bar (tokens, duration, tok/s)
+
+- **Keyboard Shortcuts**:
+  - `Ctrl+C` — cancel in-progress streaming (re-enables input, stays in session)
+  - `Ctrl+D` — save session and exit
+  - `Shift+Enter` — insert newline in input (works in iTerm2, kitty, WezTerm via Kitty protocol)
+  - `Tab` — accept inline command suggestion
+
+- **Command Suggestions**: Inline ghost text suggestions as you type `/` commands via `SuggestFromList`
+
+- **`/reconnect` Command**: Retry vLLM server connection after initial failure
+
+- **Configurable Token Encoding** (`TIKTOKEN_ENCODING`): Choose tokenizer encoding (default `cl100k_base`, also supports `o200k_base`, `p50k_base`, etc.)
+
+- **Configurable Code Theme** (`CODE_THEME`): Pygments theme for syntax-highlighted code blocks (default `monokai`)
+
+- **Version Display**: Header now shows package version via `importlib.metadata`
+
+- **`docs/CONFIGURATION.md`**: New standalone configuration reference documenting all 13 settings
+
+- **Automated Homebrew Updates**: CI/CD release workflow now auto-updates the Homebrew formula after PyPI publish
+
+- **Test Infrastructure**: Migrated to pytest with async support
+  - `pytest-asyncio>=0.23.0` with `asyncio_mode = "auto"`
+  - Pytest fixtures replace unittest setUp/tearDown
+  - Expanded test coverage (~3x increase in test lines)
 
 ### Removed
 - `prompt-toolkit` dependency (replaced by `textual`)
-- `SlashCommandCompleter` class (replaced by `SuggestFromList`)
-- Rich `Live`/`Group` inline streaming stats (replaced by persistent stats bar widget)
-
-### Added
-- `textual>=1.0.0` dependency for modern TUI framework
-- `Static#stats-bar` widget for persistent, always-visible performance metrics
-- `Markdown.get_stream()` streaming for efficient LLM response rendering
-- Worker-based streaming with `@work(exclusive=True)` for cancellable responses
-- Ctrl+C cancels in-progress streaming (re-enables input)
-- Ctrl+D saves session and exits
+- `SlashCommandCompleter` class (replaced by `SuggestFromList` ghost text)
+- `ConstrainedWidth` class (Textual handles layout width)
+- Rich `Live`/`Group` inline streaming display (replaced by Textual widgets)
+- `readline`/`atexit` history management (replaced by `HistoryMixin`)
+- `screenshots/zorac-screenshot-2.png` (consolidated to single screenshot)
+- `requirements/help_feature.md` (integrated into codebase)
 
 ### Migration Notes
-- No user-facing configuration changes required
-- Command history file format is backward-compatible (handles prompt_toolkit `+` prefix)
-- All interactive commands work identically
-- Session files are fully compatible
+- **No user-facing configuration changes required** — existing `.env` and `~/.zorac/config.json` files work as-is
+- **Command history is backward-compatible** — handles prompt_toolkit `+` prefix format
+- **Session files are fully compatible** — conversations restore seamlessly
+- **All interactive commands work identically** — same commands, same behavior
+- **New optional settings**: `TIKTOKEN_ENCODING` and `CODE_THEME` default to sensible values
+- **Terminal compatibility**: Shift+Enter for newlines requires a modern terminal (iTerm2, kitty, WezTerm); in terminals where Shift+Enter is indistinguishable from Enter (e.g., macOS Terminal.app), multiline input is still possible via paste
 
 ## [1.2.0] - 2026-02-02
 
@@ -225,6 +277,7 @@ For users upgrading from development versions:
 - All previous environment variables still work as before
 - New configuration options are optional with sensible defaults
 
+[1.3.0]: https://github.com/chris-colinsky/zorac/releases/tag/v1.3.0
 [1.2.0]: https://github.com/chris-colinsky/zorac/releases/tag/v1.2.0
 [1.1.0]: https://github.com/chris-colinsky/zorac/releases/tag/v1.1.0
 [1.0.0]: https://github.com/chris-colinsky/zorac/releases/tag/v1.0.0
