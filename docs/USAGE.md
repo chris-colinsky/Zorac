@@ -31,10 +31,13 @@ The assistant will respond, and the conversation is automatically saved.
 
 ### Multi-line Input
 
-Zorac supports pasting multi-line text from your clipboard:
+Zorac supports multi-line input via Shift+Enter and clipboard pasting:
 
 - **Press Enter** - Submit your prompt
+- **Press Shift+Enter** - Insert a newline (works in iTerm2, kitty, WezTerm, and most modern terminals)
 - **Paste multi-line text** - Works seamlessly from clipboard, newlines are preserved
+
+The input bar auto-resizes from 1 to 5 lines as you type.
 
 Example:
 ```
@@ -46,7 +49,7 @@ def fibonacci(n):
 [Press Enter to submit]
 ```
 
-Simply copy any multi-line text and paste it into the prompt. The newlines will be preserved, and you can submit with Enter.
+Simply type or paste multi-line text. The newlines will be preserved, and you can submit with Enter.
 
 ## Getting Help
 

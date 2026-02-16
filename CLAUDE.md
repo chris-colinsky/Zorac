@@ -106,9 +106,9 @@ Zorac is organized as a modular Python package with clear separation of concerns
 
 **zorac/main.py** - Main Application
 - `ZoracApp(App)`: Main Textual application class providing the full terminal user interface
-  - `compose()`: Yields `VerticalScroll#chat-log`, `Input#user-input` (with `SuggestFromList` for command completion), `Static#stats-bar`
+  - `compose()`: Yields `VerticalScroll#chat-log`, `ChatInput#user-input` (multiline TextArea with command suggestions), `Static#stats-bar`
   - `on_mount()` -> `_setup()`: Initialize `AsyncOpenAI` client, verify connection, load session, write header
-  - `on_input_submitted()`: Clears input, saves to history, routes to command handlers or `handle_chat()`
+  - `on_chat_input_submitted()`: Clears input, saves to history, routes to command handlers or `handle_chat()`
   - `on_key()`: Handles Up/Down arrow keys for command history navigation
   - `handle_chat()`: Adds user message to chat log, launches `_stream_response()` worker
   - `_stream_response()` (`@work`, `exclusive=True`): Streams LLM response using `Markdown.get_stream()`, updates `Static#stats-bar` in real-time
@@ -127,15 +127,17 @@ Zorac is organized as a modular Python package with clear separation of concerns
 - **Color Coding**: Consistent color scheme (blue=prompt, purple=assistant, green=success, red=error, yellow=warning)
 
 **Input Bar:**
-- **Textual Input Widget**: `Input#user-input` docked to the bottom with placeholder text "Type your message or /command"
-- **Command Suggestions**: `SuggestFromList` provides inline command suggestions as the user types `/` commands
+- **Multiline ChatInput Widget**: `ChatInput#user-input` (extends `TextArea`) docked to the bottom with placeholder text "Type your message or /command"
+- **Enter/Shift+Enter**: Enter submits the message, Shift+Enter inserts a newline. Works in iTerm2 (via ctrl+j), kitty, and WezTerm (via Kitty keyboard protocol). In terminals where Shift+Enter is indistinguishable from Enter (e.g., macOS Terminal.app), Enter always submits; multiline input is still possible via paste.
+- **Auto-Resize**: Input grows from 1 to 5 lines based on content
+- **Command Suggestions**: Inline command suggestions as the user types `/` commands, accepted with Tab
 - **Stats Bar**: `Static#stats-bar` widget docked below the input, showing contextual information:
   - Before any chat: "Ready" or session info (msg count + tokens)
   - After chat: response stats (tokens, duration, tok/s) and conversation totals
 
 **Layout:**
 - **Chat Log**: `VerticalScroll#chat-log` occupies the main area, containing all conversation messages as mounted widgets
-- **Input**: `Input#user-input` docked to the bottom for user text entry
+- **Input**: `ChatInput#user-input` docked to the bottom for multiline text entry (Enter submits, Shift+Enter for newlines)
 - **Stats Bar**: `Static#stats-bar` docked to the bottom below the input, updated in real-time during streaming
 
 **Layout & Typography:**
@@ -167,7 +169,8 @@ Zorac is organized as a modular Python package with clear separation of concerns
 - **Token Tracking**: Real-time monitoring using tiktoken (configurable encoding, default `cl100k_base`)
 - **Performance Metrics**: Real-time stats during streaming; persistent `Static#stats-bar` widget shows tokens/second, response time, and token usage
 - **Command History**: Persistent history with Up/Down arrow navigation, stored in `~/.zorac/history`
-- **Command Suggestions**: Inline command suggestions for all `/commands` via Textual `Input` with `SuggestFromList`
+- **Multiline Input**: Shift+Enter inserts newlines (works in iTerm2, kitty, WezTerm), Enter submits. Auto-resizes 1-5 lines. Pasting multiline text is preserved.
+- **Command Suggestions**: Inline command suggestions for all `/commands` via `ChatInput` (TextArea with Tab completion)
 - **Configurable Code Theme**: Syntax-highlighted code blocks use configurable Pygments theme (`CODE_THEME`, default `monokai`)
 - **LLM Command Awareness**: System prompt includes command information, enabling the LLM to answer questions about Zorac functionality
 - **Interactive Commands**: `/help`, `/clear`, `/save`, `/load`, `/tokens`, `/summarize`, `/summary`, `/config`, `/quit`, `/exit`

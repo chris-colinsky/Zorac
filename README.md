@@ -88,7 +88,7 @@ That's it. Your conversation is automatically saved and restored between session
 - **Performance Metrics** — Tokens/second, response time, and token usage after each response
 - **Tab Completion** — Hit Tab to auto-complete any `/command`
 - **Command History** — Arrow keys recall previous inputs across sessions
-- **Multi-line Input** — Paste multi-line text from clipboard; newlines are preserved
+- **Multi-line Input** — Shift+Enter inserts newlines; paste multi-line text from clipboard
 - **Offline Capable** — No internet required after initial model download
 - **Fully Configurable** — Adjust everything via runtime commands, config file, or environment variables
 

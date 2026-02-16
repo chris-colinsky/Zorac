@@ -33,7 +33,7 @@ Architecture: Textual TUI
 
   The layout uses Textual's widget system:
     - VerticalScroll#chat-log: Contains all chat messages as Static/Markdown widgets
-    - Input#user-input: Text input with SuggestFromList for slash command completion
+    - ChatInput#user-input: Multiline text input with command suggestions (Enter submits, Shift+Enter for newlines)
     - Static#stats-bar: Always-visible status bar showing performance metrics
 
   The async architecture follows this flow:
@@ -57,18 +57,19 @@ import contextlib
 import datetime
 import time
 from collections.abc import Callable, Coroutine
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
 import tiktoken
 from openai import AsyncOpenAI
 from openai.types.chat import ChatCompletionMessageParam
-from textual import work
+from textual import events, work
 from textual.app import App, ComposeResult
 from textual.binding import Binding
 from textual.containers import Vertical, VerticalScroll
-from textual.suggester import SuggestFromList
-from textual.widgets import Input, Markdown, Static
+from textual.message import Message
+from textual.widgets import Markdown, Static, TextArea
 
 from .commands import get_help_text, get_system_prompt_commands
 from .config import (
@@ -115,18 +116,114 @@ def get_initial_system_message() -> str:
     return f"{base_message}{command_info}"
 
 
-class TabCompleteInput(Input):
-    """Input widget that accepts suggestions with Tab."""
+class ChatInput(TextArea):
+    """Multiline input widget with Enter to submit and Shift+Enter for newlines.
+
+    Replaces the single-line Input widget to support multiline messages (code
+    blocks, formatted text). Enter submits the message, Shift+Enter inserts a
+    newline. Handles both "shift+enter" (Kitty keyboard protocol) and "ctrl+j"
+    (iTerm2 and other terminals that send a raw newline for Shift+Enter).
+    In terminals where Shift+Enter is indistinguishable from Enter (e.g.,
+    macOS Terminal.app), Enter always submits — multiline input is still
+    possible via paste (bracket paste mode).
+
+    Auto-resizes from 1 to 5 lines based on content. Provides inline command
+    suggestions for /commands, accepted with Tab.
+    """
+
+    @dataclass
+    class Submitted(Message):
+        """Posted when the user presses Enter to submit their message."""
+
+        input: "ChatInput"
+        value: str
 
     BINDINGS = [
         Binding("tab", "accept_suggestion", "Accept suggestion", show=False),
     ]
 
+    # Border adds 2 rows (top + bottom). Heights must include this overhead.
+    _BORDER_OVERHEAD = 2
+
+    def __init__(
+        self,
+        commands: list[str] | None = None,
+        *,
+        id: str | None = None,
+        placeholder: str = "",
+    ) -> None:
+        super().__init__(
+            id=id,
+            show_line_numbers=False,
+            soft_wrap=True,
+            tab_behavior="focus",
+            highlight_cursor_line=False,
+            theme="monokai",
+        )
+        self._commands = commands or []
+        self._placeholder = placeholder
+        self._suggestion: str = ""
+
+    def on_mount(self) -> None:
+        """Set placeholder text and apply custom theme after mount."""
+        self.placeholder = self._placeholder
+        # Override the monokai theme's background to match the Zorac UI while
+        # keeping its text color for visibility. This is needed because TextArea
+        # themes paint their own background over the CSS background property.
+        from rich.style import Style
+
+        if self._theme:
+            self._theme.base_style = Style(color="#f8f8f2", bgcolor="#1a1a2e")
+
+    async def _on_key(self, event: events.Key) -> None:
+        """Handle Enter (submit) and Shift+Enter (newline).
+
+        Shift+Enter is detected as "shift+enter" in terminals with Kitty
+        keyboard protocol (kitty, WezTerm) or as "ctrl+j" in terminals
+        that send a raw newline character (iTerm2).
+        """
+        if event.key == "enter":
+            event.stop()
+            event.prevent_default()
+            text = self.text.strip()
+            if text:
+                self.post_message(self.Submitted(input=self, value=text))
+            return
+        elif event.key in ("shift+enter", "ctrl+j"):
+            event.stop()
+            event.prevent_default()
+            self.insert("\n")
+            self._auto_resize()
+            return
+        await super()._on_key(event)
+
+    def _on_text_area_changed(self) -> None:
+        """Auto-resize and update suggestion when text changes."""
+        self._auto_resize()
+        self._update_suggestion()
+
+    def _auto_resize(self) -> None:
+        """Resize height from 1 to 5 content lines, plus border overhead."""
+        line_count = self.document.line_count
+        content_height = max(1, min(5, line_count))
+        self.styles.height = content_height + self._BORDER_OVERHEAD
+
+    def _update_suggestion(self) -> None:
+        """Show inline suggestion for /commands."""
+        text = self.text
+        self._suggestion = ""
+        if text.startswith("/") and "\n" not in text:
+            for cmd in self._commands:
+                if cmd.startswith(text) and cmd != text:
+                    self._suggestion = cmd
+                    break
+
     def action_accept_suggestion(self) -> None:
         """Accept the current suggestion if one exists."""
         if self._suggestion:
-            self.value = self._suggestion
-            self.cursor_position = len(self.value)
+            self.clear()
+            self.insert(self._suggestion)
+            self._suggestion = ""
 
 
 class ZoracApp(App):
@@ -170,7 +267,11 @@ class ZoracApp(App):
         height: auto;
     }
     #user-input {
-        background: #1a1a2e;
+        height: 3;
+        min-height: 3;
+        max-height: 7;
+        border: tall $accent-darken-3;
+        padding: 0 1;
     }
     #stats-bar {
         height: auto;
@@ -262,8 +363,8 @@ class ZoracApp(App):
             New messages are mounted as child widgets (Static for user/system,
             Markdown for assistant responses).
           - Vertical#bottom-bar: Docked to the bottom, containing:
-            - Input#user-input: Text entry with SuggestFromList for /command completion.
-              SuggestFromList provides inline tab-completion from the command list.
+            - ChatInput#user-input: Multiline text entry with command suggestions.
+              Enter submits, Shift+Enter inserts newline. Auto-resizes 1-5 lines.
             - Static#stats-bar: Shows "Ready", session info, or performance metrics.
 
         The bottom-bar is docked (CSS: dock: bottom) so it stays pinned even
@@ -273,10 +374,10 @@ class ZoracApp(App):
         all_triggers = sorted(self.command_handlers.keys())
         yield VerticalScroll(id="chat-log")
         yield Vertical(
-            TabCompleteInput(
+            ChatInput(
+                commands=all_triggers,
                 id="user-input",
-                placeholder="Type your message or /<command>",
-                suggester=SuggestFromList(all_triggers, case_sensitive=False),
+                placeholder="Type your message or /command",
             ),
             Static(" Ready ", id="stats-bar"),
             id="bottom-bar",
@@ -342,7 +443,7 @@ class ZoracApp(App):
         # Update the system message's date in case the session was saved yesterday
         # (or earlier). This ensures the LLM always knows today's date.
         self._update_system_message()
-        self.query_one("#user-input", Input).focus()
+        self.query_one("#user-input", ChatInput).focus()
 
     def load_configuration(self):
         """Load all settings from the configuration system.
@@ -395,10 +496,16 @@ class ZoracApp(App):
 
         Displays the user's message with a blue "You:" prefix to visually
         distinguish it from assistant output (purple) and system messages (dim).
-        This consistent color coding helps users scan the conversation history.
+        For multiline messages, indents continuation lines for readability.
         """
         chat_log = self.query_one("#chat-log", VerticalScroll)
-        widget = Static(f"\n[bold blue]You:[/bold blue] {text}")
+        if "\n" in text:
+            # Indent continuation lines to align under the message text
+            lines = text.split("\n")
+            formatted = lines[0] + "\n" + "\n".join("      " + line for line in lines[1:])
+            widget = Static(f"\n[bold blue]You:[/bold blue] {formatted}")
+        else:
+            widget = Static(f"\n[bold blue]You:[/bold blue] {text}")
         chat_log.mount(widget)
         widget.scroll_visible()
 
@@ -528,8 +635,8 @@ class ZoracApp(App):
 
         Reads the history file line by line, deduplicating consecutive entries.
         Handles migration from prompt_toolkit's format (which uses a "+" prefix
-        on each line) by stripping the prefix. This ensures existing users'
-        history files work after the Textual migration.
+        on each line) by stripping the prefix. Multiline entries are stored with
+        literal \\n escapes and unescaped on load.
 
         Silently ignores errors (missing file, permissions) — history is a
         convenience feature that shouldn't prevent the app from starting.
@@ -540,6 +647,8 @@ class ZoracApp(App):
                 for line in lines:
                     # Handle prompt_toolkit's + prefix format for migration
                     entry = line.lstrip("+").strip()
+                    # Unescape multiline entries
+                    entry = entry.replace("\\n", "\n")
                     if entry and (not self._history or self._history[-1] != entry):
                         self._history.append(entry)
         except Exception:
@@ -550,11 +659,13 @@ class ZoracApp(App):
 
         Keeps only the last 500 entries to prevent unbounded growth.
         Called after every input submission so history persists across sessions.
+        Multiline entries are escaped (\\n) so each history entry stays on one line.
         Silently ignores errors to avoid disrupting the chat experience.
         """
         try:
             ensure_zorac_dir()
-            Path(HISTORY_FILE).write_text("\n".join(self._history[-500:]) + "\n")
+            escaped = [entry.replace("\n", "\\n") for entry in self._history[-500:]]
+            Path(HISTORY_FILE).write_text("\n".join(escaped) + "\n")
         except Exception:
             pass
 
@@ -562,11 +673,11 @@ class ZoracApp(App):
     # Input Handling
     # -------------------------------------------------------------------
 
-    async def on_input_submitted(self, event: Input.Submitted) -> None:
+    async def on_chat_input_submitted(self, event: ChatInput.Submitted) -> None:
         """Handle user input when Enter is pressed.
 
-        Textual calls this automatically when the Input widget fires a Submitted
-        event. This replaces the old prompt_toolkit REPL loop — instead of
+        Textual calls this automatically when ChatInput posts a Submitted
+        message. This replaces the old prompt_toolkit REPL loop — instead of
         looping with prompt_async(), Textual's event system dispatches input
         submissions as messages.
 
@@ -575,7 +686,8 @@ class ZoracApp(App):
           - Normal text goes to handle_chat() for LLM interaction
         """
         user_input = event.value.strip()
-        event.input.value = ""
+        event.input.clear()
+        event.input._auto_resize()
         self._history_index = -1
         self._history_temp = ""
 
@@ -612,45 +724,63 @@ class ZoracApp(App):
           - Up arrow: Move backward through history (older entries)
           - Down arrow: Move forward through history (newer entries)
 
+        For multiline content, Up/Down move the cursor within the text
+        instead of navigating history. History navigation only activates
+        when the cursor is on the first line (Up) or last line (Down).
+
         When the user first presses Up, we save their current input in
         _history_temp so they can return to it by pressing Down past the
         most recent history entry. This prevents losing partially-typed
         messages when browsing history.
-
-        event.prevent_default() stops Textual from handling the key
-        (which would normally move the cursor within the input field).
         """
-        input_widget = self.query_one("#user-input", Input)
+        input_widget = self.query_one("#user-input", ChatInput)
         if not input_widget.has_focus:
             return
 
         if event.key == "up":
+            # Only navigate history when cursor is on the first line
+            if not input_widget.cursor_at_first_line:
+                return
             event.prevent_default()
             if not self._history:
                 return
             if self._history_index == -1:
                 # Starting to navigate — save current input
-                self._history_temp = input_widget.value
+                self._history_temp = input_widget.text
                 self._history_index = len(self._history) - 1
             elif self._history_index > 0:
                 self._history_index -= 1
             else:
                 return  # Already at the oldest entry
-            input_widget.value = self._history[self._history_index]
-            input_widget.cursor_position = len(input_widget.value)
+            input_widget.clear()
+            input_widget.insert(self._history[self._history_index])
+            input_widget._auto_resize()
+            # Move cursor to end of text
+            last_line = input_widget.document.line_count - 1
+            last_col = len(input_widget.document.get_line(last_line))
+            input_widget.move_cursor((last_line, last_col))
 
         elif event.key == "down":
+            # Only navigate history when cursor is on the last line
+            if not input_widget.cursor_at_last_line:
+                return
             event.prevent_default()
             if self._history_index == -1:
                 return  # Not currently navigating history
             if self._history_index < len(self._history) - 1:
                 self._history_index += 1
-                input_widget.value = self._history[self._history_index]
+                text = self._history[self._history_index]
             else:
                 # Past the newest entry — restore the saved input
                 self._history_index = -1
-                input_widget.value = self._history_temp
-            input_widget.cursor_position = len(input_widget.value)
+                text = self._history_temp
+            input_widget.clear()
+            input_widget.insert(text)
+            input_widget._auto_resize()
+            # Move cursor to end of text
+            last_line = input_widget.document.line_count - 1
+            last_col = len(input_widget.document.get_line(last_line))
+            input_widget.move_cursor((last_line, last_col))
 
     # -------------------------------------------------------------------
     # Chat
@@ -699,7 +829,7 @@ class ZoracApp(App):
             await self._summarize_messages()
 
         # Disable input during streaming to prevent overlapping requests
-        input_widget = self.query_one("#user-input", Input)
+        input_widget = self.query_one("#user-input", ChatInput)
         input_widget.disabled = True
         self._streaming = True
 
@@ -730,7 +860,7 @@ class ZoracApp(App):
         worker = get_current_worker()
         chat_log = self.query_one("#chat-log", VerticalScroll)
         stats_bar = self.query_one("#stats-bar", Static)
-        input_widget = self.query_one("#user-input", Input)
+        input_widget = self.query_one("#user-input", ChatInput)
 
         # Add assistant label to the chat log
         label = Static("\n[bold purple]Assistant:[/bold purple]")
@@ -869,7 +999,7 @@ class ZoracApp(App):
         if self._streaming:
             self.workers.cancel_group(self, "stream")
             self._streaming = False
-            input_widget = self.query_one("#user-input", Input)
+            input_widget = self.query_one("#user-input", ChatInput)
             input_widget.disabled = False
             input_widget.focus()
             self._log_system("Response interrupted.", style="yellow")
