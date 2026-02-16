@@ -5,6 +5,37 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+- **UI Framework**: Migrated from Rich/prompt_toolkit REPL to Textual TUI framework
+  - Full terminal user interface with scrollable chat log, persistent stats bar, and input bar
+  - Stats bar pinned to bottom — always visible, never scrolls away
+  - Real-time streaming stats via `Markdown.get_stream()` for efficient batched updates
+  - Slash command autocomplete via `SuggestFromList` ghost text suggestions
+  - Manual command history with Up/Down arrow navigation and file persistence
+  - `ZoracApp(App)` replaces `Zorac` class as the main application controller
+  - First-time setup runs before Textual alternate screen (since `input()` is incompatible)
+
+### Removed
+- `prompt-toolkit` dependency (replaced by `textual`)
+- `SlashCommandCompleter` class (replaced by `SuggestFromList`)
+- Rich `Live`/`Group` inline streaming stats (replaced by persistent stats bar widget)
+
+### Added
+- `textual>=1.0.0` dependency for modern TUI framework
+- `Static#stats-bar` widget for persistent, always-visible performance metrics
+- `Markdown.get_stream()` streaming for efficient LLM response rendering
+- Worker-based streaming with `@work(exclusive=True)` for cancellable responses
+- Ctrl+C cancels in-progress streaming (re-enables input)
+- Ctrl+D saves session and exits
+
+### Migration Notes
+- No user-facing configuration changes required
+- Command history file format is backward-compatible (handles prompt_toolkit `+` prefix)
+- All interactive commands work identically
+- Session files are fully compatible
+
 ## [1.2.0] - 2026-02-02
 
 ### Changed

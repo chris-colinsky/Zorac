@@ -163,6 +163,7 @@ make pre-commit
 - **tiktoken** (>=0.8.0): Token counting for accurate usage tracking
 - **python-dotenv** (>=1.0.0): Environment variable management from .env files
 - **rich** (>=14.2.0): Rich terminal formatting, markdown rendering, and live updates
+- **textual** (>=1.0.0): Modern TUI framework for the full terminal user interface
 
 ### Development Dependencies
 
@@ -206,14 +207,13 @@ make pre-commit
 - Provides cleaner, more readable terminal output
 - Maintains Rich styling (bold, colored) while forcing left justification
 
-**zorac/main.py** - Main Event Loop
-- Interactive REPL with command handling
+**zorac/main.py** - Textual TUI application with chat log, stats bar, and input widgets
 - `get_initial_system_message()`: Generates enhanced system prompt with command info
-- Styled input bar with dark background, placeholder text, and bottom stats toolbar
-- Real-time streaming stats via `Group(markdown, stats_text)` in Rich `Live`
+- Textual Input widget with SuggestFromList for slash command autocomplete
+- Real-time streaming via `Markdown.get_stream()` with persistent stats bar
 - Streaming and non-streaming response modes
 - Session auto-save after each response
-- Performance metrics in persistent bottom toolbar
+- Stats bar widget (`Static#stats-bar`) docked to bottom for always-visible metrics
 
 **zorac/session.py** - Session Persistence
 - `save_session()`: Saves conversation to JSON
@@ -308,9 +308,9 @@ def _left_aligned_heading_rich_console(self, console, options):
 **Design Principles:**
 - Full-width output for assistant responses
 - Left-align all content to match "Assistant:" label
-- Remove `vertical_overflow` from Live contexts to prevent scroll duplication
-- Use `Group(markdown, stats_text)` during streaming for real-time stats
-- Final `live.update(markdown_only)` before Live exits for clean scrollback
+- Use `Markdown.get_stream()` during streaming for real-time content updates
+- `Static#stats-bar` displays real-time metrics during streaming
+- Stats bar updates in real-time during streaming, persists after response
 - Stats persist in bottom toolbar between interactions
 
 ## Feature Requirements
@@ -603,7 +603,7 @@ python -c "from zorac.commands import get_system_prompt_commands; print(get_syst
 - [Rich Documentation](https://rich.readthedocs.io/) - Terminal UI library
 - [OpenAI API Reference](https://platform.openai.com/docs/api-reference) - API compatibility
 - [tiktoken](https://github.com/openai/tiktoken) - Token counting library
-- [prompt-toolkit](https://python-prompt-toolkit.readthedocs.io/) - Advanced input handling
+- [Textual](https://textual.textualize.io/) - Modern TUI framework
 
 ## Support
 

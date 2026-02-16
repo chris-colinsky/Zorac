@@ -279,6 +279,12 @@ Electricity for an RTX 4090 at ~300W is roughly $0.05-0.10 per hour. Far cheaper
 </details>
 
 <details>
+<summary><b>How do I copy text from the chat?</b></summary>
+
+Zorac uses mouse reporting for scrolling, which can interfere with native text selection in some terminals. In **iTerm2**, hold **Option (⌥)** while clicking and dragging to select text, then copy with **Cmd+C** as usual. Most terminals support a similar modifier key — check your terminal's documentation for its equivalent.
+</details>
+
+<details>
 <summary><b>What other models can I run?</b></summary>
 
 Any model with vLLM support: Llama, Qwen, Phi, DeepSeek, etc. Just change the `VLLM_MODEL` setting. See [vLLM supported models](https://docs.vllm.ai/en/stable/models/supported_models/).

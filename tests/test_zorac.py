@@ -730,59 +730,49 @@ class TestTokenCountAfterSaveLoad:
             assert original_count == loaded_count
 
 
-class TestStatsToolbar:
-    """Test the bottom toolbar stats display.
+class TestStatsBar:
+    """Test the stats bar display logic.
 
-    The bottom toolbar shows contextual stats: "Ready" before any chat,
+    The stats bar shows contextual stats: "Ready" before any chat,
     session info when messages are loaded, and full performance stats
-    after a chat interaction.
+    after a chat interaction. Tests use Textual's async test framework.
     """
 
-    def test_stats_toolbar_initial_state(self):
-        """Test that the toolbar shows 'Ready' before any chat interaction."""
-        from zorac.main import Zorac
+    async def test_stats_bar_initial_state(self):
+        """Test that the stats bar shows 'Ready' before any chat interaction."""
+        from textual.widgets import Static
 
-        app = Zorac()
-        app.messages = [{"role": "system", "content": "System"}]
-        result = app._get_stats_toolbar()
-        assert len(result) == 1
-        assert "Ready" in result[0][1]
+        from zorac.main import ZoracApp
 
-    def test_stats_toolbar_with_loaded_session(self):
-        """Test that the toolbar shows session info when messages exist."""
-        from zorac.main import Zorac
+        app = ZoracApp()
+        async with app.run_test(size=(80, 24)):
+            stats_bar = app.query_one("#stats-bar", Static)
+            text = stats_bar.content
+            assert "Ready" in text
 
-        app = Zorac()
-        app.messages = [
-            {"role": "system", "content": "System"},
-            {"role": "user", "content": "Hello"},
-            {"role": "assistant", "content": "Hi there"},
-        ]
-        result = app._get_stats_toolbar()
-        assert len(result) == 1
-        assert "Session:" in result[0][1]
-        assert "3 msgs" in result[0][1]
+    async def test_stats_bar_after_stats_update(self):
+        """Test that the stats bar shows full stats after updating."""
+        from textual.widgets import Static
 
-    def test_stats_toolbar_after_chat(self):
-        """Test that the toolbar shows full stats after a chat interaction."""
-        from zorac.main import Zorac
+        from zorac.main import ZoracApp
 
-        app = Zorac()
-        app.stats = {
-            "tokens": 42,
-            "duration": 1.5,
-            "tps": 28.0,
-            "total_msgs": 5,
-            "current_tokens": 800,
-        }
-        result = app._get_stats_toolbar()
-        assert len(result) == 1
-        text = result[0][1]
-        assert "42 tokens" in text
-        assert "1.5s" in text
-        assert "28.0 tok/s" in text
-        assert "5 msgs" in text
-        assert "800/12000" in text
+        app = ZoracApp()
+        async with app.run_test(size=(80, 24)):
+            app.stats = {
+                "tokens": 42,
+                "duration": 1.5,
+                "tps": 28.0,
+                "total_msgs": 5,
+                "current_tokens": 800,
+            }
+            app._update_stats_bar()
+            stats_bar = app.query_one("#stats-bar", Static)
+            text = stats_bar.content
+            assert "42 tokens" in text
+            assert "1.5s" in text
+            assert "28.0 tok/s" in text
+            assert "5 msgs" in text
+            assert "800/12000" in text
 
 
 class TestCheckConnectionAsync:

@@ -39,7 +39,7 @@ When users ask about installation, configuration, or usage, refer them to the ap
   - **config.py**: Configuration management and environment variables
   - **console.py**: Rich console singleton for terminal output
   - **llm.py**: LLM interaction and conversation summarization
-  - **main.py**: Main event loop and interactive CLI logic
+  - **main.py**: Textual TUI application (ZoracApp), streaming, command handling
   - **markdown_custom.py**: Custom markdown renderer with left-aligned headings
   - **session.py**: Session persistence (save/load functionality)
   - **utils.py**: Utility functions (token counting, header display, connection checks)
@@ -105,32 +105,38 @@ Zorac is organized as a modular Python package with clear separation of concerns
 - Maintains Rich styling (bold, colored) while forcing left justification
 
 **zorac/main.py** - Main Application
-- `Zorac`: Main application class using async/await architecture with `AsyncOpenAI` client
-  - `async setup()`: Initialize client, verify connection, load session
-  - `async run()`: Main interactive loop using `prompt_toolkit.prompt_async()` for non-blocking input
-  - `async handle_chat()`: Process chat interactions with async streaming and real-time stats
-  - `_get_stats_toolbar()`: Returns formatted text for the persistent bottom toolbar
-  - Command handlers: All `async def cmd_*()` methods for `/help`, `/quit`, `/config`, etc.
-- `main()`: Entry point using `asyncio.run()` to start the async application
+- `ZoracApp(App)`: Main Textual application class providing the full terminal user interface
+  - `compose()`: Yields `VerticalScroll#chat-log`, `Input#user-input` (with `SuggestFromList` for command completion), `Static#stats-bar`
+  - `on_mount()` -> `_setup()`: Initialize `AsyncOpenAI` client, verify connection, load session, write header
+  - `on_input_submitted()`: Clears input, saves to history, routes to command handlers or `handle_chat()`
+  - `on_key()`: Handles Up/Down arrow keys for command history navigation
+  - `handle_chat()`: Adds user message to chat log, launches `_stream_response()` worker
+  - `_stream_response()` (`@work`, `exclusive=True`): Streams LLM response using `Markdown.get_stream()`, updates `Static#stats-bar` in real-time
+  - Command handlers: All `cmd_*()` methods for `/help`, `/quit`, `/config`, etc., output via `_log_system()` / `_log_user()` instead of `console.print()`
+- `main()`: Runs first-time setup before Textual, then calls `ZoracApp().run()`
 - `get_initial_system_message()`: Generate system message with command information for LLM awareness
 
 ### UI/UX Implementation
 
 **Core Rendering:**
-- **Rich Console**: All output uses Rich library for colored, formatted terminal display
-- **Live Streaming**: Assistant responses stream in real-time using `Live()` context manager with `Group(markdown, stats)` for inline stats during streaming
-- **Markdown Rendering**: All assistant responses are rendered as full-width formatted markdown with custom left-aligned headings
+- **Textual Widgets**: All output is rendered via Textual widgets mounted in the application DOM
+- **Streaming Markdown**: Assistant responses stream in real-time using Textual's `Markdown.get_stream()` API, yielding tokens into a live-updating `Markdown` widget inside `VerticalScroll#chat-log`
+- **Markdown Rendering**: All assistant responses are rendered as formatted markdown via Textual's built-in `Markdown` widget
 - **Formatted Panels**: Header displayed in styled panels with rounded box styles
 - **Status Indicators**: Spinners and status messages for long-running operations (summarization)
 - **Color Coding**: Consistent color scheme (blue=prompt, purple=assistant, green=success, red=error, yellow=warning)
 
 **Input Bar:**
-- **Styled Prompt**: `> ` prompt with dark background (`bg:#1a1a2e`) via prompt_toolkit `PtStyle`
-- **Placeholder Text**: "Type your message or /\<command\>" shown when input is empty (italic, dimmed)
-- **Bottom Toolbar**: Persistent stats bar showing contextual information:
+- **Textual Input Widget**: `Input#user-input` docked to the bottom with placeholder text "Type your message or /command"
+- **Command Suggestions**: `SuggestFromList` provides inline command suggestions as the user types `/` commands
+- **Stats Bar**: `Static#stats-bar` widget docked below the input, showing contextual information:
   - Before any chat: "Ready" or session info (msg count + tokens)
   - After chat: response stats (tokens, duration, tok/s) and conversation totals
-  - Styled with `#888888` text on `bg:#0f0f1a` dark background
+
+**Layout:**
+- **Chat Log**: `VerticalScroll#chat-log` occupies the main area, containing all conversation messages as mounted widgets
+- **Input**: `Input#user-input` docked to the bottom for user text entry
+- **Stats Bar**: `Static#stats-bar` docked to the bottom below the input, updated in real-time during streaming
 
 **Layout & Typography:**
 - **Full-Width Output**: Assistant responses render at full terminal width
@@ -139,29 +145,29 @@ Zorac is organized as a modular Python package with clear separation of concerns
   - H2: Bold light gray text with spacing
   - H3+: Bold gray text
   - All headings left-aligned (not centered) for better readability
-- **Code Blocks**: Syntax-highlighted code blocks automatically handled by Rich markdown
+- **Code Blocks**: Syntax-highlighted code blocks automatically handled by Textual/Rich markdown
 - **Responsive Design**: Content adapts to current console size
 
 **Streaming Stats:**
-- During streaming: `Group(markdown_content, stats_text)` shows real-time token count, elapsed time, and tok/s
-- Before `Live` exits: final `live.update(markdown_only)` ensures clean scrollback (transient stats don't persist)
-- After streaming: `self.stats` dict is updated and displayed by `_get_stats_toolbar()` on next prompt
+- During streaming: `Static#stats-bar` is updated in real-time via `stats_bar.update()` showing token count, elapsed time, and tok/s
+- Stats persist in the bottom bar across prompts without inline display
+- After streaming: `self.stats` dict is updated and the stats bar reflects the latest response metrics
 
 **Implementation Details:**
 - `LeftAlignedMarkdown` monkey-patches Rich's `Heading.__rich_console__` method to force left alignment
-- `PtStyle` from prompt_toolkit styles the input bar, placeholder, and bottom toolbar
-- `_get_stats_toolbar()` returns `FormattedText` tuples for the bottom toolbar
+- Textual CSS styles the input widget, stats bar, and chat log layout
+- `_stream_response()` uses `@work(exclusive=True)` to run streaming in a background worker thread
 
 ### Key Features
-- **Async Architecture**: Built on `asyncio` with `AsyncOpenAI` client and `prompt_toolkit.prompt_async()` for non-blocking I/O
+- **Textual TUI**: Full terminal user interface built on the Textual framework with widgets, layout, streaming, and event handling
 - **Persistent Sessions**: Auto-saves after each assistant response to `~/.zorac/session.json`
 - **Auto-Summarization**: When conversation exceeds 12k tokens, summarizes older messages while preserving the last 6 messages
-- **Streaming Responses**: Real-time async token streaming with live markdown rendering
+- **Streaming Responses**: Real-time token streaming with live markdown rendering via Textual's `Markdown.get_stream()` API
 - **Rich Terminal UI**: Colored output, formatted panels, markdown rendering, and ASCII art logo
 - **Token Tracking**: Real-time monitoring using tiktoken (configurable encoding, default `cl100k_base`)
-- **Performance Metrics**: Real-time stats during streaming; persistent bottom toolbar shows tokens/second, response time, and token usage
-- **Command History**: Persistent history via prompt_toolkit `FileHistory` stored in `~/.zorac/history`
-- **Command Auto-Completion**: Tab-completion for all `/commands` via prompt_toolkit `WordCompleter`
+- **Performance Metrics**: Real-time stats during streaming; persistent `Static#stats-bar` widget shows tokens/second, response time, and token usage
+- **Command History**: Persistent history with Up/Down arrow navigation, stored in `~/.zorac/history`
+- **Command Suggestions**: Inline command suggestions for all `/commands` via Textual `Input` with `SuggestFromList`
 - **Configurable Code Theme**: Syntax-highlighted code blocks use configurable Pygments theme (`CODE_THEME`, default `monokai`)
 - **LLM Command Awareness**: System prompt includes command information, enabling the LLM to answer questions about Zorac functionality
 - **Interactive Commands**: `/help`, `/clear`, `/save`, `/load`, `/tokens`, `/summarize`, `/summary`, `/config`, `/quit`, `/exit`
@@ -336,7 +342,7 @@ For server configuration details, see **docs/SERVER_SETUP.md**. Key points:
 - **tiktoken** (>=0.8.0): Token counting (encoding configurable via `TIKTOKEN_ENCODING`, default `cl100k_base`)
 - **python-dotenv** (>=1.0.0): Environment variable management from .env files
 - **rich** (>=14.2.0): Rich terminal formatting, markdown rendering, and live updates
-- **prompt-toolkit** (>=3.0.0): Advanced terminal input with `prompt_async()` for non-blocking user input
+- **textual** (>=1.0.0): Modern TUI framework providing the full terminal user interface with widgets, layout, streaming, and event handling
 
 ### Development Dependencies
 - **pytest** (>=8.0.0): Testing framework
