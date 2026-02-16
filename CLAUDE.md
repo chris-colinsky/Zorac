@@ -108,40 +108,49 @@ Zorac is organized as a modular Python package with clear separation of concerns
 - `Zorac`: Main application class using async/await architecture with `AsyncOpenAI` client
   - `async setup()`: Initialize client, verify connection, load session
   - `async run()`: Main interactive loop using `prompt_toolkit.prompt_async()` for non-blocking input
-  - `async handle_chat()`: Process chat interactions with async streaming
+  - `async handle_chat()`: Process chat interactions with async streaming and real-time stats
+  - `_get_stats_toolbar()`: Returns formatted text for the persistent bottom toolbar
   - Command handlers: All `async def cmd_*()` methods for `/help`, `/quit`, `/config`, etc.
 - `main()`: Entry point using `asyncio.run()` to start the async application
 - `get_initial_system_message()`: Generate system message with command information for LLM awareness
-- `ConstrainedWidth`: Custom Rich renderable that constrains content to 60% of console width for optimal readability
 
 ### UI/UX Implementation
 
 **Core Rendering:**
 - **Rich Console**: All output uses Rich library for colored, formatted terminal display
-- **Live Streaming**: Assistant responses stream in real-time using `Live()` context manager (without `vertical_overflow` to prevent text duplication on scroll)
-- **Markdown Rendering**: All assistant responses are rendered as formatted markdown with custom left-aligned headings
-- **Formatted Panels**: Header displayed in styled panels with rounded box styles; stats shown as plain text for cleaner appearance
+- **Live Streaming**: Assistant responses stream in real-time using `Live()` context manager with `Group(markdown, stats)` for inline stats during streaming
+- **Markdown Rendering**: All assistant responses are rendered as full-width formatted markdown with custom left-aligned headings
+- **Formatted Panels**: Header displayed in styled panels with rounded box styles
 - **Status Indicators**: Spinners and status messages for long-running operations (summarization)
-- **Color Coding**: Consistent color scheme (blue=user, purple=assistant, green=success, red=error, yellow=warning)
+- **Color Coding**: Consistent color scheme (blue=prompt, purple=assistant, green=success, red=error, yellow=warning)
+
+**Input Bar:**
+- **Styled Prompt**: `> ` prompt with dark background (`bg:#1a1a2e`) via prompt_toolkit `PtStyle`
+- **Placeholder Text**: "Type your message or /\<command\>" shown when input is empty (italic, dimmed)
+- **Bottom Toolbar**: Persistent stats bar showing contextual information:
+  - Before any chat: "Ready" or session info (msg count + tokens)
+  - After chat: response stats (tokens, duration, tok/s) and conversation totals
+  - Styled with `#888888` text on `bg:#0f0f1a` dark background
 
 **Layout & Typography:**
-- **Width Constraint**: Content constrained to 60% of console width using `ConstrainedWidth` wrapper
-  - Uses Rich's `max_width` option constraint (not padding) for stable text wrapping
-  - Renders at 60% width when printed, remains stable when window is resized wider
-  - Only reflows if window shrinks below 60% of original width
-  - Left-aligned to match "Assistant:" label (no left padding)
+- **Full-Width Output**: Assistant responses render at full terminal width
 - **Left-Aligned Headings**: Custom `LeftAlignedMarkdown` renderer removes centered heading panels
   - H1: Bold white text with spacing
   - H2: Bold light gray text with spacing
   - H3+: Bold gray text
   - All headings left-aligned (not centered) for better readability
 - **Code Blocks**: Syntax-highlighted code blocks automatically handled by Rich markdown
-- **Responsive Design**: Width calculated at render time; new content adapts to current console size
+- **Responsive Design**: Content adapts to current console size
+
+**Streaming Stats:**
+- During streaming: `Group(markdown_content, stats_text)` shows real-time token count, elapsed time, and tok/s
+- Before `Live` exits: final `live.update(markdown_only)` ensures clean scrollback (transient stats don't persist)
+- After streaming: `self.stats` dict is updated and displayed by `_get_stats_toolbar()` on next prompt
 
 **Implementation Details:**
-- `ConstrainedWidth` class wraps renderables and applies `max_width` via `ConsoleOptions.update()`
 - `LeftAlignedMarkdown` monkey-patches Rich's `Heading.__rich_console__` method to force left alignment
-- Width constraint approach preferred over padding to ensure stable layout on window resize
+- `PtStyle` from prompt_toolkit styles the input bar, placeholder, and bottom toolbar
+- `_get_stats_toolbar()` returns `FormattedText` tuples for the bottom toolbar
 
 ### Key Features
 - **Async Architecture**: Built on `asyncio` with `AsyncOpenAI` client and `prompt_toolkit.prompt_async()` for non-blocking I/O
@@ -150,7 +159,7 @@ Zorac is organized as a modular Python package with clear separation of concerns
 - **Streaming Responses**: Real-time async token streaming with live markdown rendering
 - **Rich Terminal UI**: Colored output, formatted panels, markdown rendering, and ASCII art logo
 - **Token Tracking**: Real-time monitoring using tiktoken (configurable encoding, default `cl100k_base`)
-- **Performance Metrics**: Displays tokens/second, response time, and token usage after each interaction
+- **Performance Metrics**: Real-time stats during streaming; persistent bottom toolbar shows tokens/second, response time, and token usage
 - **Command History**: Persistent history via prompt_toolkit `FileHistory` stored in `~/.zorac/history`
 - **Command Auto-Completion**: Tab-completion for all `/commands` via prompt_toolkit `WordCompleter`
 - **Configurable Code Theme**: Syntax-highlighted code blocks use configurable Pygments theme (`CODE_THEME`, default `monokai`)

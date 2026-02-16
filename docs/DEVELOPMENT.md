@@ -209,12 +209,11 @@ make pre-commit
 **zorac/main.py** - Main Event Loop
 - Interactive REPL with command handling
 - `get_initial_system_message()`: Generates enhanced system prompt with command info
-- `ConstrainedWidth`: Custom Rich renderable that constrains content to 60% of console width
-  - Uses `ConsoleOptions.update(max_width=...)` for stable text wrapping
-  - Provides optimal readability on all terminal sizes
+- Styled input bar with dark background, placeholder text, and bottom stats toolbar
+- Real-time streaming stats via `Group(markdown, stats_text)` in Rich `Live`
 - Streaming and non-streaming response modes
 - Session auto-save after each response
-- Performance metrics tracking
+- Performance metrics in persistent bottom toolbar
 
 **zorac/session.py** - Session Persistence
 - `save_session()`: Saves conversation to JSON
@@ -294,17 +293,6 @@ console.print(Panel(
 ))
 ```
 
-**Content Width Constraint:**
-
-Adjust the content width percentage in `zorac/main.py`:
-
-```python
-CONTENT_WIDTH_PCT = 0.6  # 60% width, change to desired percentage
-
-# Apply to content
-constrained_content = ConstrainedWidth(markdown_content, CONTENT_WIDTH_PCT)
-```
-
 **Custom Markdown Rendering:**
 
 Modify heading styles in `zorac/markdown_custom.py`:
@@ -318,10 +306,12 @@ def _left_aligned_heading_rich_console(self, console, options):
 ```
 
 **Design Principles:**
-- Use width constraint (not padding) for stable layout on window resize
+- Full-width output for assistant responses
 - Left-align all content to match "Assistant:" label
 - Remove `vertical_overflow` from Live contexts to prevent scroll duplication
-- Constrain width using `ConsoleOptions.update(max_width=...)` for proper text wrapping
+- Use `Group(markdown, stats_text)` during streaming for real-time stats
+- Final `live.update(markdown_only)` before Live exits for clean scrollback
+- Stats persist in bottom toolbar between interactions
 
 ## Feature Requirements
 

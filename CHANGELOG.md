@@ -53,11 +53,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Cleaner, more readable terminal output
   - Monkey-patches Rich's Heading class for consistent styling
 
-- **Content Width Constraint**: Optimal reading width for terminal output
-  - `ConstrainedWidth` class constrains content to 60% of console width (zorac/main.py:41-58)
-  - Prevents overly wide text that's hard to read
-  - Stable layout that only reflows when window shrinks below constraint
-  - Applied to all assistant responses and conversation summaries
+- **Styled Input Bar**: Modern prompt with dark background and placeholder text
+  - `> ` prompt with `bg:#1a1a2e` dark background
+  - Placeholder text "Type your message or /\<command\>" when input is empty
+  - Bottom toolbar showing real-time stats and session info
 
 - **Multi-GPU Training Guide**: Comprehensive documentation for training setups (docs/TEST_TRAINING.md)
   - 220-line guide covering multi-GPU configuration

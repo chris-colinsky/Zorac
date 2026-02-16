@@ -730,6 +730,61 @@ class TestTokenCountAfterSaveLoad:
             assert original_count == loaded_count
 
 
+class TestStatsToolbar:
+    """Test the bottom toolbar stats display.
+
+    The bottom toolbar shows contextual stats: "Ready" before any chat,
+    session info when messages are loaded, and full performance stats
+    after a chat interaction.
+    """
+
+    def test_stats_toolbar_initial_state(self):
+        """Test that the toolbar shows 'Ready' before any chat interaction."""
+        from zorac.main import Zorac
+
+        app = Zorac()
+        app.messages = [{"role": "system", "content": "System"}]
+        result = app._get_stats_toolbar()
+        assert len(result) == 1
+        assert "Ready" in result[0][1]
+
+    def test_stats_toolbar_with_loaded_session(self):
+        """Test that the toolbar shows session info when messages exist."""
+        from zorac.main import Zorac
+
+        app = Zorac()
+        app.messages = [
+            {"role": "system", "content": "System"},
+            {"role": "user", "content": "Hello"},
+            {"role": "assistant", "content": "Hi there"},
+        ]
+        result = app._get_stats_toolbar()
+        assert len(result) == 1
+        assert "Session:" in result[0][1]
+        assert "3 msgs" in result[0][1]
+
+    def test_stats_toolbar_after_chat(self):
+        """Test that the toolbar shows full stats after a chat interaction."""
+        from zorac.main import Zorac
+
+        app = Zorac()
+        app.stats = {
+            "tokens": 42,
+            "duration": 1.5,
+            "tps": 28.0,
+            "total_msgs": 5,
+            "current_tokens": 800,
+        }
+        result = app._get_stats_toolbar()
+        assert len(result) == 1
+        text = result[0][1]
+        assert "42 tokens" in text
+        assert "1.5s" in text
+        assert "28.0 tok/s" in text
+        assert "5 msgs" in text
+        assert "800/12000" in text
+
+
 class TestCheckConnectionAsync:
     """Test the async server connection verification.
 

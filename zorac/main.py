@@ -7,13 +7,10 @@ interactive experience. The main components are:
   1. **Zorac class**: The application controller that manages state, handles
      user input, processes commands, and coordinates chat interactions.
 
-  2. **ConstrainedWidth**: A Rich renderable wrapper that limits output to
-     60% of terminal width for optimal readability.
-
-  3. **SlashCommandCompleter**: A prompt_toolkit completer that provides
+  2. **SlashCommandCompleter**: A prompt_toolkit completer that provides
      tab-completion for slash commands.
 
-  4. **main()**: The entry point that creates and runs the Zorac instance.
+  3. **main()**: The entry point that creates and runs the Zorac instance.
 
 Architecture: Async-first design
   The entire application is built on Python's asyncio. This is essential because:
@@ -50,13 +47,15 @@ from openai import AsyncOpenAI
 from openai.types.chat import ChatCompletionMessageParam
 from prompt_toolkit import PromptSession
 from prompt_toolkit.completion import Completer, Completion
-from prompt_toolkit.formatted_text import FormattedText
+from prompt_toolkit.formatted_text import HTML, FormattedText
 from prompt_toolkit.history import FileHistory
 from prompt_toolkit.patch_stdout import patch_stdout
+from prompt_toolkit.styles import Style as PtStyle
 from rich import box
-from rich.console import Console, ConsoleOptions, RenderableType, RenderResult
+from rich.console import Group
 from rich.live import Live
 from rich.panel import Panel
+from rich.text import Text
 
 from .commands import get_help_text, get_system_prompt_commands
 from .config import (
@@ -83,62 +82,6 @@ from .llm import summarize_old_messages
 from .markdown_custom import LeftAlignedMarkdown as Markdown
 from .session import load_session, save_session
 from .utils import check_connection, count_tokens, print_header
-
-# Content width as percentage of console width.
-# 60% provides a comfortable reading width — similar to how newspapers use
-# narrow columns for readability. Full-width terminal text (especially on
-# wide monitors) forces the eye to travel too far between lines, making it
-# harder to track which line you're reading. The remaining 40% of whitespace
-# on the right serves as a visual margin.
-CONTENT_WIDTH_PCT = 0.6
-
-
-class ConstrainedWidth:
-    """Wrapper that constrains any Rich renderable to a percentage of console width.
-
-    This implements Rich's "renderable protocol" — any object with a
-    `__rich_console__` method can be printed by Rich's Console. By wrapping
-    content in ConstrainedWidth, we limit its rendering width without using
-    padding (which would cause layout instability on terminal resize).
-
-    Why max_width instead of padding?
-      - max_width constrains the content to a fixed pixel width at render time
-      - If the terminal is resized wider, the content stays at its rendered width
-      - If the terminal shrinks below the content width, text reflows naturally
-      - Padding-based approaches cause text to jump around on resize
-
-    Usage:
-        md = Markdown("# Hello")
-        constrained = ConstrainedWidth(md, 0.6)  # 60% of console width
-        console.print(constrained)
-    """
-
-    def __init__(self, renderable: RenderableType, width_pct: float = 0.6):
-        self.renderable = renderable
-        self.width_pct = width_pct
-
-    def __rich_console__(self, console: Console, options: ConsoleOptions) -> RenderResult:
-        """Render the wrapped content with a constrained width.
-
-        This method is called by Rich's Console when printing this object.
-        We intercept the render pipeline, modify the options to limit width,
-        then delegate rendering to the wrapped content.
-
-        Args:
-            console: The Rich Console performing the render.
-            options: Current rendering options (width, justification, etc.).
-
-        Yields:
-            Rendered output from the wrapped renderable, constrained to our target width.
-        """
-        # Calculate the target width as a percentage of the current console width.
-        # This is computed at render time so it adapts to the current terminal size.
-        max_width = int(console.width * self.width_pct)
-        # Create new options with the constrained width. ConsoleOptions is immutable,
-        # so update() returns a new instance rather than modifying in place.
-        new_options = options.update(max_width=max_width)
-        # Delegate rendering to the wrapped content with the new width constraint.
-        yield from console.render(self.renderable, new_options)
 
 
 class SlashCommandCompleter(Completer):
@@ -256,6 +199,15 @@ class Zorac:
         self.session_start_time: float = 0.0  # For calculating session duration
         self._current_date: datetime.date | None = None  # Tracks date for system message refresh
 
+        # Stats from the most recent chat interaction, displayed in the bottom toolbar
+        self.stats: dict[str, int | float] = {
+            "tokens": 0,
+            "duration": 0.0,
+            "tps": 0.0,
+            "total_msgs": 0,
+            "current_tokens": 0,
+        }
+
         # Command dispatch table: maps command strings to async handler methods.
         # This pattern replaces a long if/elif chain with a clean dictionary lookup.
         # Adding a new command is as simple as:
@@ -360,20 +312,34 @@ class Zorac:
             self.encoding = tiktoken.get_encoding("cl100k_base")
 
     def setup_prompt_session(self):
-        """Set up prompt_toolkit session with persistent history and tab-completion.
+        """Set up prompt_toolkit session with persistent history, tab-completion, and styling.
 
         prompt_toolkit provides a readline-like experience with extra features:
           - FileHistory: Saves command history to ~/.zorac/history, persisting
             across sessions. Users can press up/down to recall previous inputs.
           - SlashCommandCompleter: Tab-completion for /commands.
           - PromptSession: Manages the input state, including multi-line editing.
+          - PtStyle: Dark-themed input bar with styled prompt and bottom toolbar.
+          - placeholder: Hint text shown when input is empty.
         """
         # Collect all command triggers for the tab-completion list
         all_triggers = list(self.command_handlers.keys())
 
+        pt_style = PtStyle.from_dict(
+            {
+                "prompt": "bold ansiblue",
+                "": "bg:#1a1a2e",
+                "placeholder": "italic #666666 bg:#1a1a2e",
+                "bottom-toolbar": "#888888 bg:#0f0f1a",
+                "bottom-toolbar.text": "#888888 bg:#0f0f1a",
+            }
+        )
+
         self.prompt_session = PromptSession(
             history=FileHistory(str(HISTORY_FILE)),
             completer=SlashCommandCompleter(all_triggers),
+            style=pt_style,
+            placeholder=HTML("<placeholder>Type your message or /&lt;command&gt;</placeholder>"),
         )
 
     def _update_system_message(self):
@@ -399,6 +365,36 @@ class Zorac:
         if today != self._current_date:
             self._update_system_message()
 
+    def _get_stats_toolbar(self) -> list[tuple[str, str]]:
+        """Build the bottom toolbar content showing stats or ready state.
+
+        Returns prompt_toolkit style tuples for the bottom toolbar. Before any
+        chat interaction, shows "Ready" or loaded session info. After a chat,
+        shows response stats and conversation totals.
+        """
+        if self.stats["tokens"] > 0:
+            return [
+                (
+                    "class:bottom-toolbar",
+                    f" Stats: {int(self.stats['tokens'])} tokens in "
+                    f"{self.stats['duration']:.1f}s ({self.stats['tps']:.1f} tok/s)"
+                    f" | Total: {int(self.stats['total_msgs'])} msgs, "
+                    f"~{int(self.stats['current_tokens'])}/{MAX_INPUT_TOKENS} tokens ",
+                )
+            ]
+
+        # Before any chat — show session info if messages loaded, otherwise "Ready"
+        if len(self.messages) > 1:
+            token_count = count_tokens(self.messages)
+            return [
+                (
+                    "class:bottom-toolbar",
+                    f" Session: {len(self.messages)} msgs, ~{token_count} tokens ",
+                )
+            ]
+
+        return [("class:bottom-toolbar", " Ready ")]
+
     async def get_multiline_input(self) -> str:
         """Get user input using prompt_toolkit's async prompt.
 
@@ -419,9 +415,12 @@ class Zorac:
 
         # FormattedText uses ANSI style tuples: (style_string, text)
         # This is prompt_toolkit's styling format (different from Rich's markup).
-        formatted_prompt = FormattedText([("ansiblue bold", "You:"), ("", " ")])
+        formatted_prompt = FormattedText([("class:prompt", "> ")])
         try:
-            user_input = await self.prompt_session.prompt_async(formatted_prompt)
+            user_input = await self.prompt_session.prompt_async(
+                formatted_prompt,
+                bottom_toolbar=self._get_stats_toolbar,
+            )
             return str(user_input).strip()
         except (EOFError, KeyboardInterrupt):
             return ""
@@ -574,6 +573,7 @@ class Zorac:
                     # refresh_per_second=10 balances smooth display with CPU usage.
                     # Higher values (like 30) would waste CPU re-rendering unchanged
                     # content. Lower values (like 2) would make updates feel choppy.
+                    stream_tokens = 0
                     with Live("", refresh_per_second=10) as live:
                         async for chunk in stream_response:
                             if chunk.choices[0].delta.content:
@@ -589,13 +589,26 @@ class Zorac:
                                 # that changes how earlier text should be rendered.
                                 content_chunk = chunk.choices[0].delta.content
                                 full_content += content_chunk
+                                stream_tokens += len(self.encoding.encode(content_chunk))
+                                elapsed = time.time() - start_time
+                                tps = stream_tokens / elapsed if elapsed > 0 else 0
+
                                 markdown_content = Markdown(
                                     full_content, justify="left", code_theme=self.code_theme
                                 )
-                                constrained_content = ConstrainedWidth(
-                                    markdown_content, CONTENT_WIDTH_PCT
+                                stats_text = Text(
+                                    f" {stream_tokens} tokens | {elapsed:.1f}s | {tps:.1f} tok/s",
+                                    style="dim",
                                 )
-                                live.update(constrained_content)
+                                live.update(Group(markdown_content, stats_text))
+
+                        # Final update with just the markdown so scrollback is clean
+                        # (the transient stats line doesn't persist).
+                        if full_content:
+                            final_md = Markdown(
+                                full_content, justify="left", code_theme=self.code_theme
+                            )
+                            live.update(final_md)
                 else:
                     # --- Non-streaming mode ---
                     # Waits for the complete response before displaying.
@@ -612,22 +625,18 @@ class Zorac:
                     markdown_content = Markdown(
                         full_content, justify="left", code_theme=self.code_theme
                     )
-                    constrained_content = ConstrainedWidth(markdown_content, CONTENT_WIDTH_PCT)
-                    console.print(constrained_content)
+                    console.print(markdown_content)
 
             except Exception as e:
                 console.print(f"[red]Error receiving response: {e}[/red]")
                 full_content += f"\n[Error: {e}]"
 
         # --- Performance metrics ---
-        # Calculate and display stats about the response. These help users
-        # understand their hardware's inference performance and monitor
-        # context window usage.
+        # Calculate stats and store them for display in the bottom toolbar.
+        # The toolbar persists across the next input prompt, providing
+        # seamless stats visibility without cluttering scrollback.
         end_time = time.time()
         duration = end_time - start_time
-        # Count tokens in the response using our tiktoken encoder.
-        # This is an approximation — the actual token count may differ slightly
-        # from what the model used, but it's close enough for performance metrics.
         tokens = len(self.encoding.encode(full_content))
         tps = tokens / duration if duration > 0 else 0
 
@@ -638,12 +647,14 @@ class Zorac:
         save_session(self.messages)
         current_tokens = count_tokens(self.messages)
 
-        # Display stats in dim text to keep them visually subordinate to
-        # the actual conversation content.
-        console.print(
-            f"\n[dim]Stats: {tokens} tokens in {duration:.2f}s ({tps:.2f} tok/s) | "
-            f"Total: {len(self.messages)} msgs, ~{current_tokens}/{MAX_INPUT_TOKENS} tokens[/dim]\n"
-        )
+        # Update stats dict — shown by _get_stats_toolbar() on next prompt
+        self.stats = {
+            "tokens": tokens,
+            "duration": duration,
+            "tps": tps,
+            "total_msgs": len(self.messages),
+            "current_tokens": current_tokens,
+        }
 
     # -----------------------------------------------------------------------
     # Command Handlers
@@ -751,8 +762,7 @@ class Zorac:
                 markdown_content = Markdown(
                     summary_text, justify="left", code_theme=self.code_theme
                 )
-                constrained_content = ConstrainedWidth(markdown_content, CONTENT_WIDTH_PCT)
-                console.print(Panel(constrained_content, box=box.ROUNDED, expand=True))
+                console.print(Panel(markdown_content, box=box.ROUNDED, expand=True))
                 console.print()
                 summary_found = True
 
