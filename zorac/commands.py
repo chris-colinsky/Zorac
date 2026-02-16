@@ -23,6 +23,7 @@ Architecture note:
   lightweight and free of runtime dependencies.
 """
 
+import datetime
 from typing import TypedDict
 
 
@@ -156,6 +157,26 @@ def get_help_text() -> str:
             lines.append(f"  [cyan]{trigger_str}[/cyan]{padding}- {cmd['description']}")
 
     return "\n".join(lines)
+
+
+def get_initial_system_message() -> str:
+    """Build the initial system message that defines the LLM's behavior.
+
+    The system message serves two purposes:
+      1. Identity & behavior: "You are Zorac, a helpful AI assistant"
+      2. Command awareness: Includes all available commands so the LLM can
+         suggest them naturally when users ask about functionality
+
+    Including the current date allows the LLM to answer time-sensitive questions
+    and provides temporal context for the conversation.
+
+    Returns:
+        The complete system message string to use as messages[0].
+    """
+    today = datetime.date.today().strftime("%A, %B %d, %Y")
+    base_message = f"You are Zorac, a helpful AI assistant. Today's date is {today}."
+    command_info = get_system_prompt_commands()
+    return f"{base_message}{command_info}"
 
 
 def get_system_prompt_commands() -> str:

@@ -35,14 +35,18 @@ When users ask about installation, configuration, or usage, refer them to the ap
 - **zorac/**: Main package directory containing the application modules
   - **__init__.py**: Package exports and public API
   - **__main__.py**: Entry point for `python -m zorac`
-  - **commands.py**: Command registry and help text generation
+  - **commands.py**: Command registry, help text generation, and `get_initial_system_message()`
   - **config.py**: Configuration management and environment variables
   - **console.py**: Rich console singleton for terminal output
+  - **handlers.py**: `CommandHandlersMixin` — all `cmd_*` command handler methods
+  - **history.py**: `HistoryMixin` — command history load/save and Up/Down arrow navigation
   - **llm.py**: LLM interaction and conversation summarization
-  - **main.py**: Textual TUI application (ZoracApp), streaming, command handling
+  - **main.py**: Textual TUI application (ZoracApp) orchestrator, UI helpers, and chat flow
   - **markdown_custom.py**: Custom markdown renderer with left-aligned headings
   - **session.py**: Session persistence (save/load functionality)
+  - **streaming.py**: `StreamingMixin` — `_stream_response` worker for LLM streaming
   - **utils.py**: Utility functions (token counting, header display, connection checks)
+  - **widgets.py**: `ChatInput(TextArea)` — multiline input widget with command suggestions
 - **tests/**: Comprehensive test suite with 28 test cases
   - **test_zorac.py**: Unit and integration tests
   - **__init__.py**: Test package marker
@@ -71,10 +75,11 @@ Zorac is organized as a modular Python package with clear separation of concerns
 
 ### Package Modules
 
-**zorac/commands.py** - Command Registry
+**zorac/commands.py** - Command Registry & System Message
 - `COMMANDS`: Centralized list of all interactive commands with descriptions
 - `get_help_text()`: Generate formatted help text for `/help` command display
 - `get_system_prompt_commands()`: Generate command information for system prompt (enables LLM command awareness)
+- `get_initial_system_message()`: Build the system prompt with identity, date, and command awareness
 - Single source of truth for all command definitions
 
 **zorac/config.py** - Configuration Management
@@ -104,17 +109,35 @@ Zorac is organized as a modular Python package with clear separation of concerns
 - Removes centered heading panels for cleaner, more readable terminal output
 - Maintains Rich styling (bold, colored) while forcing left justification
 
-**zorac/main.py** - Main Application
-- `ZoracApp(App)`: Main Textual application class providing the full terminal user interface
-  - `compose()`: Yields `VerticalScroll#chat-log`, `ChatInput#user-input` (multiline TextArea with command suggestions), `Static#stats-bar`
+**zorac/widgets.py** - Chat Input Widget
+- `ChatInput(TextArea)`: Multiline input widget with Enter to submit, Shift+Enter for newlines
+- Auto-resizes from 1 to 5 lines based on content
+- Inline command suggestions for `/commands`, accepted with Tab
+
+**zorac/handlers.py** - Command Handlers (Mixin)
+- `CommandHandlersMixin`: All `cmd_*()` methods for `/help`, `/quit`, `/config`, etc.
+- Mixed into `ZoracApp` via Python MRO
+- Outputs via `_log_system()` / `_log_user()` methods from main app
+
+**zorac/history.py** - Command History (Mixin)
+- `HistoryMixin`: History load/save and Up/Down arrow navigation
+- `_load_history()`: Load from `~/.zorac/history` with prompt_toolkit migration
+- `_save_history()`: Persist last 500 entries with multiline escaping
+- `on_key()`: Handles Up/Down arrow keys for readline-like history navigation
+
+**zorac/streaming.py** - LLM Streaming (Mixin)
+- `StreamingMixin`: `_stream_response()` worker method
+- `_stream_response()` (`@work`, `exclusive=True`): Streams LLM response using `Markdown.get_stream()`, updates `Static#stats-bar` in real-time
+
+**zorac/main.py** - Main Application (Orchestrator)
+- `ZoracApp(CommandHandlersMixin, StreamingMixin, HistoryMixin, App)`: Main Textual application class
+  - `compose()`: Yields `VerticalScroll#chat-log`, `ChatInput#user-input`, `Static#stats-bar`
   - `on_mount()` -> `_setup()`: Initialize `AsyncOpenAI` client, verify connection, load session, write header
   - `on_chat_input_submitted()`: Clears input, saves to history, routes to command handlers or `handle_chat()`
-  - `on_key()`: Handles Up/Down arrow keys for command history navigation
   - `handle_chat()`: Adds user message to chat log, launches `_stream_response()` worker
-  - `_stream_response()` (`@work`, `exclusive=True`): Streams LLM response using `Markdown.get_stream()`, updates `Static#stats-bar` in real-time
-  - Command handlers: All `cmd_*()` methods for `/help`, `/quit`, `/config`, etc., output via `_log_system()` / `_log_user()` instead of `console.print()`
+  - UI helpers: `_log_system()`, `_log_user()`, `_update_stats_bar()`, `_write_header()`
 - `main()`: Runs first-time setup before Textual, then calls `ZoracApp().run()`
-- `get_initial_system_message()`: Generate system message with command information for LLM awareness
+- Re-exports `get_initial_system_message` from `commands.py` for backward compatibility
 
 ### UI/UX Implementation
 
