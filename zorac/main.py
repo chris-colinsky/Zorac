@@ -536,7 +536,7 @@ class ZoracApp(App):
         else:
             stats_bar.update(" Ready ")
 
-    def _write_header(self) -> None:
+    def _write_header(self, show_commands: bool = True) -> None:
         """Write the welcome header with ASCII art logo and connection info.
 
         This is displayed once at startup (and again after /clear). The header
@@ -548,6 +548,10 @@ class ZoracApp(App):
         with Rich markup for purple coloring. Unlike the old architecture which
         used Rich's Panel widget, the Textual version mounts Static widgets
         directly into the chat log.
+
+        Args:
+            show_commands: Whether to display the commands list. True at startup,
+                False after /clear to reduce noise.
         """
         chat_log = self.query_one("#chat-log", VerticalScroll)
 
@@ -572,19 +576,20 @@ class ZoracApp(App):
         )
         chat_log.mount(Static(config_text))
 
-        commands_text = (
-            "\n[bold]Commands:[/bold]\n"
-            "  [green]/clear[/green]     - Clear conversation history\n"
-            "  [green]/save[/green]      - Manually save session\n"
-            "  [green]/load[/green]      - Reload session from disk\n"
-            "  [green]/tokens[/green]    - Show current token usage\n"
-            "  [green]/summarize[/green] - Force summarization of conversation\n"
-            "  [green]/summary[/green]   - Show current conversation summary\n"
-            "  [green]/reconnect[/green] - Retry server connection\n"
-            "  [green]/config[/green]    - Manage configuration\n"
-            "  [green]/quit[/green]      - Exit the chat\n"
-        )
-        chat_log.mount(Static(commands_text))
+        if show_commands:
+            commands_text = (
+                "\n[bold]Commands:[/bold]\n"
+                "  [green]/clear[/green]     - Clear conversation history\n"
+                "  [green]/save[/green]      - Manually save session\n"
+                "  [green]/load[/green]      - Reload session from disk\n"
+                "  [green]/tokens[/green]    - Show current token usage\n"
+                "  [green]/summarize[/green] - Force summarization of conversation\n"
+                "  [green]/summary[/green]   - Show current conversation summary\n"
+                "  [green]/reconnect[/green] - Retry server connection\n"
+                "  [green]/config[/green]    - Manage configuration\n"
+                "  [green]/quit[/green]      - Exit the chat\n"
+            )
+            chat_log.mount(Static(commands_text))
 
     async def _check_connection(self) -> bool:
         """Verify connection to the vLLM server using the models endpoint.
@@ -1107,7 +1112,8 @@ class ZoracApp(App):
 
         chat_log = self.query_one("#chat-log", VerticalScroll)
         await chat_log.remove_children()
-        self._write_header()
+        self._write_header(show_commands=False)
+        self._log_system("")
         self._log_system("Conversation history cleared and saved!", style="green")
 
         self.stats = {
@@ -1255,7 +1261,7 @@ class ZoracApp(App):
                 f"  STREAM:             {self.stream_enabled}\n"
                 f"  TIKTOKEN_ENCODING:  {self.tiktoken_encoding}\n"
                 f"  CODE_THEME:         {self.code_theme}\n"
-                f"  Config File:        {CONFIG_FILE}"
+                f"  Config File:        {CONFIG_FILE}\n"
             )
 
         elif args[1] == "set" and len(args) >= 4:
