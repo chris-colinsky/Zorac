@@ -51,16 +51,19 @@ class CommandHandlersMixin:
     encoding: Any
     stats: dict[str, int | float]
 
-    # Method stubs for ZoracApp / App methods (resolved via MRO at runtime)
-    def _log_system(self, text: str, style: str = "dim") -> None: ...
-    def _update_stats_bar(self) -> None: ...
-    def _write_header(self, show_commands: bool = True) -> None: ...
-    async def _check_connection(self) -> bool: ...  # type: ignore[empty-body]
-    async def _summarize_messages(self, auto: bool = True) -> None: ...
-    def query_one(self, selector: str, expect_type: type | None = None) -> Any: ...
-    def exit(
-        self, result: object = None, return_code: int = 0, message: str | None = None
-    ) -> None: ...
+    # Method stubs for ZoracApp / App methods — only present during type
+    # checking so they don't shadow real methods inherited via MRO at runtime.
+    if TYPE_CHECKING:
+
+        def _log_system(self, text: str, style: str = "dim") -> None: ...
+        def _update_stats_bar(self) -> None: ...
+        def _write_header(self, show_commands: bool = True) -> None: ...
+        async def _check_connection(self) -> bool: ...
+        async def _summarize_messages(self, auto: bool = True) -> None: ...
+        def query_one(self, selector: str, expect_type: type | None = None) -> Any: ...
+        def exit(
+            self, result: object = None, return_code: int = 0, message: str | None = None
+        ) -> None: ...
 
     # -------------------------------------------------------------------
     # Command Handlers
@@ -162,7 +165,7 @@ class CommandHandlersMixin:
         if len(self.messages) <= KEEP_RECENT_MESSAGES + 1:
             self._log_system(
                 f"Not enough messages to summarize. Need more than "
-                f"{KEEP_RECENT_MESSAGES + 1} messages.",
+                f"{KEEP_RECENT_MESSAGES + 1} messages.\n",
                 style="yellow",
             )
         else:
@@ -170,7 +173,7 @@ class CommandHandlersMixin:
             # instead of "token limit approaching"
             await self._summarize_messages(auto=False)
             save_session(self.messages)
-            self._log_system("Session saved with summary", style="green")
+            self._log_system("Session saved with summary\n", style="green")
 
     async def cmd_summary(self, _args: list[str]):
         """Handle /summary — display the current conversation summary if one exists.

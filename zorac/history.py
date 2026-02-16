@@ -8,7 +8,7 @@ mixed into ZoracApp.
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from .config import HISTORY_FILE, ensure_zorac_dir
 
@@ -21,8 +21,11 @@ class HistoryMixin:
     _history_index: int
     _history_temp: str
 
-    # Method stubs for App methods (resolved via MRO at runtime)
-    def query_one(self, selector: str, expect_type: type | None = None) -> Any: ...
+    # Method stubs for App methods — only present during type
+    # checking so they don't shadow real methods inherited via MRO at runtime.
+    if TYPE_CHECKING:
+
+        def query_one(self, selector: str, expect_type: type | None = None) -> Any: ...
 
     def _load_history(self) -> None:
         """Load command history from ~/.zorac/history for Up/Down arrow navigation.

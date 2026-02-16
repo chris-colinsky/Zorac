@@ -126,6 +126,9 @@ class ZoracApp(CommandHandlersMixin, StreamingMixin, HistoryMixin, App):
         background: #0f0f1a;
         color: #888888;
     }
+    MarkdownFence {
+        background: #2a2a3a;
+    }
     """
 
     # Key bindings map keyboard shortcuts to action methods (action_*).
