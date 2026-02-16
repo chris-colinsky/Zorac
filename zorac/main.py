@@ -4,6 +4,19 @@ Main application module for Zorac — the interactive CLI chat client.
 This is the heart of Zorac. It orchestrates all other modules into a cohesive
 interactive experience built on Textual, a modern TUI framework.
 
+The main components are:
+
+  1. **ZoracApp class**: The Textual application that manages state, handles
+     user input, processes commands, and coordinates chat interactions. It
+     extends textual.app.App to get lifecycle management, widget composition,
+     key bindings, and worker threads for free.
+
+  2. **get_initial_system_message()**: Builds the system prompt that defines
+     the LLM's identity and command awareness.
+
+  3. **main()**: The entry point that runs first-time setup (before Textual's
+     alternate screen) and launches the TUI.
+
 Architecture: Textual TUI
   ZoracApp extends textual.app.App to provide a full terminal user interface with:
     - A scrollable chat log area for conversation history
@@ -11,14 +24,26 @@ Architecture: Textual TUI
     - An input bar with autocomplete suggestions for slash commands
     - Real-time streaming markdown rendering during LLM responses
 
+  Why Textual instead of prompt_toolkit + Rich?
+    The previous architecture used prompt_toolkit for input and Rich for output,
+    which required careful coordination (patch_stdout, Live context managers).
+    Textual unifies both into a single widget-based framework where the entire
+    UI is reactive — widgets update in place without flickering, scrolling is
+    automatic, and streaming content "just works" via Markdown.get_stream().
+
   The layout uses Textual's widget system:
     - VerticalScroll#chat-log: Contains all chat messages as Static/Markdown widgets
     - Input#user-input: Text input with SuggestFromList for slash command completion
     - Static#stats-bar: Always-visible status bar showing performance metrics
 
+  The async architecture follows this flow:
+    main() → ZoracApp().run() → Textual event loop → on_mount/_setup → event handlers
+
 Command processing:
   Commands (starting with /) are handled by a dispatch table (self.command_handlers)
-  that maps command strings to async handler methods.
+  that maps command strings to async handler methods. This pattern is cleaner than
+  a long if/elif chain and makes it easy to add new commands — just add the handler
+  method and the mapping entry.
 
   Normal chat messages (not starting with /) go through handle_chat(), which:
     1. Checks/manages the connection
@@ -92,19 +117,35 @@ def get_initial_system_message() -> str:
 class ZoracApp(App):
     """Main Textual application for the Zorac CLI chat client.
 
-    This class extends Textual's App to provide a full TUI with a scrollable
-    chat log, persistent stats bar, and input bar with autocomplete.
+    This class follows the "application controller" pattern — it owns all
+    application state and coordinates between the various subsystems (config,
+    session, LLM, UI). Extending Textual's App gives us:
+      - Automatic event loop management (no manual asyncio.run())
+      - Widget composition via compose() for declarative UI layout
+      - Key bindings for Ctrl+C/Ctrl+D handling
+      - Worker threads via @work decorator for non-blocking streaming
+      - CSS-based styling for consistent visual design
 
     The lifecycle is:
         app = ZoracApp()
-        app.run()  # Textual handles the event loop
+        app.run()  # Textual handles the event loop, calls on_mount → _setup
+
+    Why a class instead of module-level functions?
+      - Encapsulates mutable state (messages, connection status, config values)
+      - Makes testing easier (create isolated instances with different state)
+      - Command handlers can access shared state via self
+      - Textual requires an App subclass for its lifecycle management
 
     Key state:
       - self.messages: The conversation history (list of OpenAI message dicts)
       - self.client: The async OpenAI client connected to the vLLM server
       - self.is_connected: Whether we have a working server connection
+      - self._streaming: Whether a response is currently being streamed
     """
 
+    # Textual CSS for layout and styling. Textual uses a CSS subset (TCSS) that
+    # supports properties like dock, padding, background, and color. This replaces
+    # the prompt_toolkit PtStyle dict from the previous architecture.
     CSS = """
     #chat-log {
         padding: 0 1;
@@ -124,6 +165,10 @@ class ZoracApp(App):
     }
     """
 
+    # Key bindings map keyboard shortcuts to action methods (action_*).
+    # Ctrl+C cancels the current stream (not quit), Ctrl+D saves and exits.
+    # This mirrors common terminal conventions where Ctrl+C is interrupt
+    # and Ctrl+D is EOF/exit.
     BINDINGS = [
         ("ctrl+c", "cancel_stream", "Cancel"),
         ("ctrl+d", "quit_app", "Quit"),
@@ -142,18 +187,21 @@ class ZoracApp(App):
         self.tiktoken_encoding = TIKTOKEN_ENCODING
         self.code_theme = CODE_THEME
 
-        # tiktoken encoder instance
+        # tiktoken encoder instance — used for counting tokens in responses.
+        # Initialized here and updated if the user changes TIKTOKEN_ENCODING
+        # via /config. We keep a pre-loaded encoder to avoid the cost of
+        # loading it on every token count operation.
         self.encoding = tiktoken.get_encoding(self.tiktoken_encoding)
 
         # Runtime state
-        self.client: AsyncOpenAI | None = None
-        self.is_connected = False
-        self.messages: list[ChatCompletionMessageParam] = []
-        self.session_start_time: float = 0.0
-        self._current_date: datetime.date | None = None
-        self._streaming = False  # True while streaming a response
+        self.client: AsyncOpenAI | None = None  # Set during _setup()
+        self.is_connected = False  # Updated by _check_connection()
+        self.messages: list[ChatCompletionMessageParam] = []  # Conversation history
+        self.session_start_time: float = 0.0  # For calculating session duration
+        self._current_date: datetime.date | None = None  # Tracks date for system message refresh
+        self._streaming = False  # True while streaming a response (disables input)
 
-        # Stats from the most recent chat interaction
+        # Stats from the most recent chat interaction, displayed in the stats bar
         self.stats: dict[str, int | float] = {
             "tokens": 0,
             "duration": 0.0,
@@ -162,15 +210,23 @@ class ZoracApp(App):
             "current_tokens": 0,
         }
 
-        # Command history (replaces prompt_toolkit FileHistory)
+        # Command history — replaces prompt_toolkit's FileHistory with a simple
+        # in-memory list that's loaded from / saved to ~/.zorac/history.
+        # _history_index tracks position during Up/Down navigation (-1 = not navigating).
+        # _history_temp stores the user's in-progress input when they start navigating.
         self._history: list[str] = []
         self._history_index: int = -1
         self._history_temp: str = ""
 
-        # Command dispatch table
+        # Command dispatch table: maps command strings to async handler methods.
+        # This pattern replaces a long if/elif chain with a clean dictionary lookup.
+        # Adding a new command is as simple as:
+        #   1. Add the handler method (async def cmd_foo)
+        #   2. Add the mapping here: "/foo": self.cmd_foo
+        #   3. Add the command info to commands.py COMMANDS list
         self.command_handlers: dict[str, Callable[[list[str]], Coroutine[Any, Any, None]]] = {
             "/quit": self.cmd_quit,
-            "/exit": self.cmd_quit,
+            "/exit": self.cmd_quit,  # Alias — both map to the same handler
             "/help": self.cmd_help,
             "/clear": self.cmd_clear,
             "/save": self.cmd_save,
@@ -183,7 +239,22 @@ class ZoracApp(App):
         }
 
     def compose(self) -> ComposeResult:
-        """Build the UI layout: chat log, input bar, stats bar."""
+        """Build the UI layout: chat log, input bar, stats bar.
+
+        Textual calls compose() once during app initialization to build the
+        widget tree. The layout is:
+          - VerticalScroll#chat-log: Scrollable container for the entire conversation.
+            New messages are mounted as child widgets (Static for user/system,
+            Markdown for assistant responses).
+          - Vertical#bottom-bar: Docked to the bottom, containing:
+            - Input#user-input: Text entry with SuggestFromList for /command completion.
+              SuggestFromList provides inline tab-completion from the command list.
+            - Static#stats-bar: Shows "Ready", session info, or performance metrics.
+
+        The bottom-bar is docked (CSS: dock: bottom) so it stays pinned even
+        as the chat log grows and scrolls.
+        """
+        # Collect all command triggers for the autocomplete suggestion list
         all_triggers = sorted(self.command_handlers.keys())
         yield VerticalScroll(id="chat-log")
         yield Vertical(
@@ -201,15 +272,33 @@ class ZoracApp(App):
         await self._setup()
 
     async def _setup(self) -> None:
-        """Initialize: load config, connect to server, restore session."""
+        """Initialize the application: load config, connect to server, restore session.
+
+        This is separated from __init__ because it performs async operations
+        (connection check) and I/O (session loading). Python's __init__ can't
+        be async, so Textual's on_mount() calls this method after the UI is ready.
+
+        Setup sequence:
+          1. Load configuration from all sources (env, file, defaults)
+          2. Ensure data directory exists (~/.zorac/)
+          3. Load command history for Up/Down arrow navigation
+          4. Display welcome header (ASCII art + connection info)
+          5. Create OpenAI client and verify connection
+          6. Load previous session or create a fresh one
+          7. Update system message with current date
+        """
         self.load_configuration()
         ensure_zorac_dir()
 
         self._load_history()
 
-        # Write header first so status messages appear below logo
+        # Write header first so status messages appear below the logo
         self._write_header()
 
+        # Create the async OpenAI client. We use OpenAI's client library because
+        # vLLM implements the OpenAI-compatible API, so we get a well-tested,
+        # maintained client for free. The client handles HTTP connection pooling,
+        # retries, streaming, and error handling.
         self.client = AsyncOpenAI(base_url=self.vllm_base_url, api_key=self.vllm_api_key)
         self.is_connected = await self._check_connection()
 
@@ -221,6 +310,8 @@ class ZoracApp(App):
 
         self.session_start_time = time.time()
 
+        # Try to restore the previous conversation session from disk.
+        # If successful, the user can continue where they left off.
         loaded_messages = load_session()
         if loaded_messages:
             self.messages = loaded_messages
@@ -230,13 +321,21 @@ class ZoracApp(App):
                 style="green",
             )
         else:
+            # First run or no saved session — start with just the system message
             self.messages = [{"role": "system", "content": get_initial_system_message()}]
 
+        # Update the system message's date in case the session was saved yesterday
+        # (or earlier). This ensures the LLM always knows today's date.
         self._update_system_message()
         self.query_one("#user-input", Input).focus()
 
     def load_configuration(self):
-        """Load all settings from the configuration system."""
+        """Load all settings from the configuration system.
+
+        Reads each setting using the three-tier priority system
+        (env var > config file > default). This method is called during
+        _setup() and could be called again to reload configuration.
+        """
         self.vllm_base_url = get_setting("VLLM_BASE_URL", "http://localhost:8000/v1")
         self.vllm_api_key = get_setting("VLLM_API_KEY", "EMPTY")
         self.vllm_model = get_setting(
@@ -248,6 +347,8 @@ class ZoracApp(App):
         self.tiktoken_encoding = get_setting("TIKTOKEN_ENCODING", TIKTOKEN_ENCODING)
         self.code_theme = get_setting("CODE_THEME", CODE_THEME)
 
+        # Update the tiktoken encoder to match the configured encoding.
+        # Falls back to cl100k_base if the configured encoding is invalid.
         try:
             self.encoding = tiktoken.get_encoding(self.tiktoken_encoding)
         except Exception:
@@ -258,21 +359,47 @@ class ZoracApp(App):
     # -------------------------------------------------------------------
 
     def _log_system(self, text: str, style: str = "dim") -> None:
-        """Add a system message to the chat log."""
+        """Add a system message to the chat log.
+
+        System messages are status updates, warnings, and command output —
+        anything that isn't a user message or assistant response. The style
+        parameter accepts any Rich markup style (e.g., "green", "bold yellow",
+        "red") for contextual color coding.
+
+        Messages are mounted as Static widgets in the chat log and automatically
+        scrolled into view. Unlike console.print() in the old architecture,
+        this integrates seamlessly with Textual's widget tree.
+        """
         chat_log = self.query_one("#chat-log", VerticalScroll)
         widget = Static(f"[{style}]{text}[/{style}]")
         chat_log.mount(widget)
         widget.scroll_visible()
 
     def _log_user(self, text: str) -> None:
-        """Add a user message to the chat log."""
+        """Add a user message to the chat log.
+
+        Displays the user's message with a blue "You:" prefix to visually
+        distinguish it from assistant output (purple) and system messages (dim).
+        This consistent color coding helps users scan the conversation history.
+        """
         chat_log = self.query_one("#chat-log", VerticalScroll)
         widget = Static(f"\n[bold blue]You:[/bold blue] {text}")
         chat_log.mount(widget)
         widget.scroll_visible()
 
     def _update_stats_bar(self) -> None:
-        """Update the stats bar with current stats."""
+        """Update the bottom stats bar with contextual information.
+
+        The stats bar shows different content depending on the application state:
+          - After a chat: Full performance metrics (tokens, duration, tok/s) and
+            conversation totals (message count, token usage vs limit)
+          - With a loaded session (no recent chat): Session summary (msg count, tokens)
+          - Fresh start: "Ready"
+
+        This replaces the prompt_toolkit bottom toolbar from the old architecture.
+        The stats bar is a Static widget docked to the bottom, so it persists
+        across all interactions without cluttering the scrollback.
+        """
         stats_bar = self.query_one("#stats-bar", Static)
         if self.stats["tokens"] > 0:
             stats_bar.update(
@@ -288,7 +415,18 @@ class ZoracApp(App):
             stats_bar.update(" Ready ")
 
     def _write_header(self) -> None:
-        """Write the logo and header info to the chat log."""
+        """Write the welcome header with ASCII art logo and connection info.
+
+        This is displayed once at startup (and again after /clear). The header
+        serves dual purposes:
+          1. Brand identity — the ASCII art logo makes Zorac visually distinctive
+          2. Quick reference — shows version, connection info, and available commands
+
+        The ASCII art uses Unicode box-drawing characters (█, ╔, ║, etc.) styled
+        with Rich markup for purple coloring. Unlike the old architecture which
+        used Rich's Panel widget, the Textual version mounts Static widgets
+        directly into the chat log.
+        """
         chat_log = self.query_one("#chat-log", VerticalScroll)
 
         logo_text = (
@@ -327,11 +465,29 @@ class ZoracApp(App):
         chat_log.mount(Static(commands_text))
 
     async def _check_connection(self) -> bool:
-        """Verify connection to the vLLM server (TUI-aware)."""
+        """Verify connection to the vLLM server using the models endpoint.
+
+        Uses the OpenAI-compatible /v1/models endpoint to verify the server is
+        reachable and responding. This is a lightweight health check — the models
+        list endpoint is fast and doesn't require loading the model into GPU memory.
+
+        Unlike the standalone check_connection() in utils.py (which uses Rich's
+        console.status spinner), this TUI-aware version updates the stats bar
+        and logs messages to the chat log widget tree.
+
+        Broad exception handling is intentional because connection failures can
+        manifest as many different exception types: ConnectionError, TimeoutError,
+        httpx.ConnectError, etc. We display the specific error for debugging.
+
+        Returns:
+            True if the server is reachable and responding, False otherwise.
+        """
         assert self.client is not None
         stats_bar = self.query_one("#stats-bar", Static)
         stats_bar.update(" Verifying connection... ")
         try:
+            # client.models.list() calls GET /v1/models on the vLLM server.
+            # If this succeeds, the server is running and accepting requests.
             await self.client.models.list()
             self._log_system("Connection verified", style="green")
             stats_bar.update(" Ready ")
@@ -353,7 +509,16 @@ class ZoracApp(App):
     # -------------------------------------------------------------------
 
     def _load_history(self) -> None:
-        """Load command history from the history file."""
+        """Load command history from ~/.zorac/history for Up/Down arrow navigation.
+
+        Reads the history file line by line, deduplicating consecutive entries.
+        Handles migration from prompt_toolkit's format (which uses a "+" prefix
+        on each line) by stripping the prefix. This ensures existing users'
+        history files work after the Textual migration.
+
+        Silently ignores errors (missing file, permissions) — history is a
+        convenience feature that shouldn't prevent the app from starting.
+        """
         try:
             if HISTORY_FILE.exists():
                 lines = Path(HISTORY_FILE).read_text().splitlines()
@@ -366,7 +531,12 @@ class ZoracApp(App):
             pass
 
     def _save_history(self) -> None:
-        """Save command history to the history file."""
+        """Save command history to the history file.
+
+        Keeps only the last 500 entries to prevent unbounded growth.
+        Called after every input submission so history persists across sessions.
+        Silently ignores errors to avoid disrupting the chat experience.
+        """
         try:
             ensure_zorac_dir()
             Path(HISTORY_FILE).write_text("\n".join(self._history[-500:]) + "\n")
@@ -378,7 +548,17 @@ class ZoracApp(App):
     # -------------------------------------------------------------------
 
     async def on_input_submitted(self, event: Input.Submitted) -> None:
-        """Handle user input submission."""
+        """Handle user input when Enter is pressed.
+
+        Textual calls this automatically when the Input widget fires a Submitted
+        event. This replaces the old prompt_toolkit REPL loop — instead of
+        looping with prompt_async(), Textual's event system dispatches input
+        submissions as messages.
+
+        The routing logic is the same as the old architecture:
+          - Commands (starting with /) are dispatched via the command_handlers table
+          - Normal text goes to handle_chat() for LLM interaction
+        """
         user_input = event.value.strip()
         event.input.value = ""
         self._history_index = -1
@@ -387,7 +567,7 @@ class ZoracApp(App):
         if not user_input:
             return
 
-        # Save to history
+        # Save to history, deduplicating consecutive identical entries
         if not self._history or self._history[-1] != user_input:
             self._history.append(user_input)
             self._save_history()
@@ -397,6 +577,9 @@ class ZoracApp(App):
             parts = user_input.split()
             cmd = parts[0].lower()
             if cmd in self.command_handlers:
+                # Dispatch to the appropriate command handler.
+                # We pass `parts` so handlers can access arguments
+                # (e.g., /config set KEY VALUE → parts = ["/config", "set", "KEY", "VALUE"])
                 await self.command_handlers[cmd](parts)
             else:
                 self._log_system(
@@ -404,10 +587,24 @@ class ZoracApp(App):
                     style="red",
                 )
         else:
+            # Not a command — process as a regular chat message
             await self.handle_chat(user_input)
 
     async def on_key(self, event) -> None:
-        """Handle key events for history navigation."""
+        """Handle Up/Down arrow keys for command history navigation.
+
+        Implements readline-like history navigation:
+          - Up arrow: Move backward through history (older entries)
+          - Down arrow: Move forward through history (newer entries)
+
+        When the user first presses Up, we save their current input in
+        _history_temp so they can return to it by pressing Down past the
+        most recent history entry. This prevents losing partially-typed
+        messages when browsing history.
+
+        event.prevent_default() stops Textual from handling the key
+        (which would normally move the cursor within the input field).
+        """
         input_widget = self.query_one("#user-input", Input)
         if not input_widget.has_focus:
             return
@@ -417,23 +614,25 @@ class ZoracApp(App):
             if not self._history:
                 return
             if self._history_index == -1:
+                # Starting to navigate — save current input
                 self._history_temp = input_widget.value
                 self._history_index = len(self._history) - 1
             elif self._history_index > 0:
                 self._history_index -= 1
             else:
-                return
+                return  # Already at the oldest entry
             input_widget.value = self._history[self._history_index]
             input_widget.cursor_position = len(input_widget.value)
 
         elif event.key == "down":
             event.prevent_default()
             if self._history_index == -1:
-                return
+                return  # Not currently navigating history
             if self._history_index < len(self._history) - 1:
                 self._history_index += 1
                 input_widget.value = self._history[self._history_index]
             else:
+                # Past the newest entry — restore the saved input
                 self._history_index = -1
                 input_widget.value = self._history_temp
             input_widget.cursor_position = len(input_widget.value)
@@ -443,12 +642,28 @@ class ZoracApp(App):
     # -------------------------------------------------------------------
 
     async def handle_chat(self, user_input: str) -> None:
-        """Process a standard chat interaction with the LLM."""
+        """Process a standard chat interaction with the LLM.
+
+        This is the core chat flow:
+          1. Check/refresh server connection (handles midnight date changes too)
+          2. Append user message to conversation history
+          3. Check token count → trigger auto-summarization if over limit
+          4. Disable input and launch the streaming worker
+
+        The actual streaming happens in _stream_response(), which runs as a
+        Textual worker thread to avoid blocking the UI event loop. The input
+        widget is disabled during streaming to prevent overlapping requests.
+
+        Args:
+            user_input: The user's chat message (already confirmed to not be a command).
+        """
         assert self.client is not None
 
+        # Keep system message date current for long-running sessions (across midnight)
         self._refresh_system_date()
 
-        # Lazy connection check
+        # Lazy connection check: if we're offline, try to reconnect before chatting.
+        # This handles the case where the server was started after Zorac.
         if not self.is_connected:
             self.is_connected = await self._check_connection()
             if not self.is_connected:
@@ -461,11 +676,14 @@ class ZoracApp(App):
         self._log_user(user_input)
         self.messages.append({"role": "user", "content": user_input})
 
+        # Check if we've exceeded the token limit and need to summarize.
+        # This happens before the API call to ensure we don't send too many
+        # tokens to the model (which would cause an error or truncation).
         current_tokens = count_tokens(self.messages)
         if current_tokens > MAX_INPUT_TOKENS:
             await self._summarize_messages()
 
-        # Disable input during streaming
+        # Disable input during streaming to prevent overlapping requests
         input_widget = self.query_one("#user-input", Input)
         input_widget.disabled = True
         self._streaming = True
@@ -474,7 +692,23 @@ class ZoracApp(App):
 
     @work(exclusive=True, group="stream")
     async def _stream_response(self) -> None:
-        """Stream the LLM response (runs as a Textual worker)."""
+        """Stream the LLM response with live Markdown rendering.
+
+        This method runs as a Textual worker thread (via @work decorator) so
+        streaming doesn't block the UI event loop. The exclusive=True parameter
+        ensures only one stream runs at a time, and group="stream" allows
+        action_cancel_stream() to cancel it by group name.
+
+        The streaming implementation uses Textual's Markdown.get_stream() API,
+        which provides a write-based interface for incrementally building
+        Markdown content. As tokens arrive from the LLM, they're written to
+        the stream and the Markdown widget re-renders automatically. This is
+        simpler than the old Rich Live approach and handles scrolling natively.
+
+        Performance stats (tokens/second, response time) are calculated locally
+        using tiktoken. This gives approximate but useful metrics without
+        needing the server to report them.
+        """
         assert self.client is not None
         from textual.worker import get_current_worker
 
@@ -483,11 +717,13 @@ class ZoracApp(App):
         stats_bar = self.query_one("#stats-bar", Static)
         input_widget = self.query_one("#user-input", Input)
 
-        # Add assistant label
+        # Add assistant label to the chat log
         label = Static("\n[bold purple]Assistant:[/bold purple]")
         chat_log.mount(label)
         label.scroll_visible()
 
+        # Show "Thinking..." while waiting for the first token.
+        # This provides immediate visual feedback that the request was sent.
         stats_bar.update(" Thinking... ")
 
         full_content = ""
@@ -495,6 +731,10 @@ class ZoracApp(App):
 
         try:
             if self.stream_enabled:
+                # --- Streaming mode (default) ---
+                # Streaming provides a responsive experience: tokens appear
+                # as they're generated (60-65 tok/s on RTX 4090), rather than
+                # waiting for the entire response to complete.
                 stream_response = await self.client.chat.completions.create(
                     model=self.vllm_model,
                     messages=self.messages,
@@ -503,7 +743,11 @@ class ZoracApp(App):
                     stream=True,
                 )
 
-                # Create a Markdown widget for the response
+                # Create a Markdown widget and get a streaming handle for it.
+                # Markdown.get_stream() returns an async context that accepts
+                # write() calls to incrementally build the content. The widget
+                # re-renders as content arrives, handling code blocks, lists,
+                # headings, etc. as they complete.
                 md_widget = Markdown("")
                 chat_log.mount(md_widget)
                 md_widget.scroll_visible()
@@ -512,6 +756,7 @@ class ZoracApp(App):
                 stream_tokens = 0
 
                 async for chunk in stream_response:
+                    # Check for cancellation (Ctrl+C) on each chunk
                     if worker.is_cancelled:
                         break
 
@@ -522,18 +767,24 @@ class ZoracApp(App):
                         elapsed = time.time() - start_time
                         tps = stream_tokens / elapsed if elapsed > 0 else 0
 
+                        # Write the chunk to the Markdown stream and keep
+                        # the chat log scrolled to the bottom
                         await stream.write(content_chunk)
                         chat_log.scroll_end(animate=False)
 
+                        # Update the stats bar with real-time performance metrics
                         stats_bar.update(
                             f" {stream_tokens} tokens | {elapsed:.1f}s | {tps:.1f} tok/s "
                         )
 
+                # Finalize the stream so the Markdown widget renders completely
                 await stream.stop()
                 chat_log.scroll_end()
 
             else:
-                # Non-streaming mode
+                # --- Non-streaming mode ---
+                # Waits for the complete response before displaying.
+                # Useful for debugging or when streaming causes issues.
                 completion_response = await self.client.chat.completions.create(
                     model=self.vllm_model,
                     messages=self.messages,
@@ -547,21 +798,28 @@ class ZoracApp(App):
                 md_widget.scroll_visible()
 
         except Exception as e:
+            # Only show errors if the stream wasn't intentionally cancelled
             if not worker.is_cancelled:
                 self._log_system(f"Error receiving response: {e}", style="red")
                 full_content += f"\n[Error: {e}]"
 
-        # Performance metrics
+        # --- Performance metrics ---
+        # Calculate stats and store them for display in the stats bar.
+        # The stats bar persists across interactions, providing seamless
+        # stats visibility without cluttering the scrollback.
         end_time = time.time()
         duration = end_time - start_time
         tokens = len(self.encoding.encode(full_content)) if full_content else 0
         tps = tokens / duration if duration > 0 else 0
 
-        # Save response
+        # Persist the assistant's response and save the session to disk.
+        # Auto-saving after every response ensures no conversation is lost,
+        # even if the application crashes or the terminal is closed.
         if full_content and not worker.is_cancelled:
             self.messages.append({"role": "assistant", "content": full_content})
             save_session(self.messages)
 
+        # Update stats dict — shown by _update_stats_bar()
         current_tokens = count_tokens(self.messages)
         self.stats = {
             "tokens": tokens,
@@ -572,7 +830,7 @@ class ZoracApp(App):
         }
         self._update_stats_bar()
 
-        # Re-enable input
+        # Re-enable input so the user can type their next message
         self._streaming = False
         input_widget.disabled = False
         input_widget.focus()
@@ -582,7 +840,17 @@ class ZoracApp(App):
     # -------------------------------------------------------------------
 
     def action_cancel_stream(self) -> None:
-        """Handle Ctrl+C — cancel streaming or ignore."""
+        """Handle Ctrl+C — cancel the current streaming response.
+
+        If a response is being streamed, cancels the worker group ("stream")
+        which stops the async iteration over chunks. The input is re-enabled
+        so the user can continue chatting. The partial response is NOT saved
+        to the session (to avoid incomplete messages in history).
+
+        If not streaming, Ctrl+C is silently ignored — this prevents
+        accidental exits and matches the behavior of most REPL-style apps
+        where Ctrl+C interrupts the current operation but doesn't quit.
+        """
         if self._streaming:
             self.workers.cancel_group(self, "stream")
             self._streaming = False
@@ -593,7 +861,11 @@ class ZoracApp(App):
         # If not streaming, ignore Ctrl+C (don't quit)
 
     def action_quit_app(self) -> None:
-        """Handle Ctrl+D — save and quit."""
+        """Handle Ctrl+D — save the session and exit the application.
+
+        Ctrl+D (EOF) is the standard Unix signal for "end of input". We save
+        the session before exiting so the user can resume where they left off.
+        """
         save_session(self.messages)
         self.exit()
 
@@ -602,13 +874,24 @@ class ZoracApp(App):
     # -------------------------------------------------------------------
 
     def _update_system_message(self):
-        """Update the system message with today's date."""
+        """Update the system message with today's date.
+
+        The system message (messages[0]) includes the current date so the LLM
+        can answer time-sensitive questions. This method refreshes it when:
+          - Loading a session from a previous day
+          - A session spans midnight (detected by _refresh_system_date)
+        """
         self._current_date = datetime.date.today()
         if self.messages and self.messages[0].get("role") == "system":
             self.messages[0] = {"role": "system", "content": get_initial_system_message()}
 
     def _refresh_system_date(self):
-        """Check if the date has changed and update the system message if needed."""
+        """Check if the date has changed and update the system message if needed.
+
+        Called before each chat interaction to handle long-running sessions
+        that span midnight. Without this, a session started at 11pm would
+        still tell the LLM it's "yesterday" at 1am.
+        """
         today = datetime.date.today()
         if today != self._current_date:
             self._update_system_message()
@@ -618,7 +901,17 @@ class ZoracApp(App):
     # -------------------------------------------------------------------
 
     async def _summarize_messages(self, auto: bool = True) -> None:
-        """Summarize messages with TUI feedback."""
+        """Summarize messages with TUI-appropriate feedback.
+
+        This is a TUI wrapper around summarize_old_messages() from llm.py.
+        It handles the UI aspects (status messages, stats bar updates) while
+        delegating the actual summarization logic to the LLM module.
+
+        Args:
+            auto: If True, shows "Token limit approaching" warning (triggered
+                  automatically). If False, shows "as requested" message
+                  (triggered by /summarize command).
+        """
         assert self.client is not None
         stats_bar = self.query_one("#stats-bar", Static)
 
@@ -640,9 +933,13 @@ class ZoracApp(App):
     # -------------------------------------------------------------------
     # Command Handlers
     # -------------------------------------------------------------------
+    # Each handler is an async method that receives the parsed command parts
+    # as a list of strings. For example, "/config set KEY VALUE" arrives as
+    # ["/config", "set", "KEY", "VALUE"]. The _args parameter is prefixed
+    # with _ for handlers that don't use arguments (convention for unused params).
 
     async def cmd_quit(self, _args: list[str]):
-        """Handle /quit and /exit — save session and exit."""
+        """Handle /quit and /exit — save session and exit the application."""
         save_session(self.messages)
         self._log_system("Session saved. Goodbye!", style="green")
         self.exit()
@@ -652,7 +949,13 @@ class ZoracApp(App):
         self._log_system(get_help_text())
 
     async def cmd_clear(self, _args: list[str]):
-        """Handle /clear — reset conversation to a fresh state."""
+        """Handle /clear — reset conversation to a fresh state.
+
+        Replaces the entire message history with just the system message,
+        effectively starting a new conversation. The cleared state is
+        immediately saved to disk so it persists across restarts. The chat
+        log is also visually cleared and the header is re-displayed.
+        """
         self.messages = [{"role": "system", "content": get_initial_system_message()}]
         self._current_date = datetime.date.today()
         save_session(self.messages)
@@ -672,12 +975,21 @@ class ZoracApp(App):
         self._update_stats_bar()
 
     async def cmd_save(self, _args: list[str]):
-        """Handle /save — manually save the current session."""
+        """Handle /save — manually save the current session to disk.
+
+        Sessions are auto-saved after every assistant response, but this
+        command allows explicit saves after typing a long message or before
+        making changes you might want to revert with /load.
+        """
         if save_session(self.messages):
             self._log_system(f"Session saved to {SESSION_FILE}", style="green")
 
     async def cmd_load(self, _args: list[str]):
-        """Handle /load — reload the session from disk."""
+        """Handle /load — reload the session from disk.
+
+        Discards any in-memory changes and restores the last saved state.
+        Useful for reverting to a previous point in the conversation.
+        """
         loaded = load_session()
         if loaded:
             self.messages = loaded
@@ -691,7 +1003,12 @@ class ZoracApp(App):
             self._log_system("No saved session found", style="red")
 
     async def cmd_tokens(self, _args: list[str]):
-        """Handle /tokens — display current token usage statistics."""
+        """Handle /tokens — display current token usage statistics.
+
+        Shows how much of the context window is being used, helping users
+        understand when auto-summarization will trigger and how much room
+        remains for new messages.
+        """
         token_count = count_tokens(self.messages)
         self._log_system(
             f"Token usage:\n"
@@ -702,7 +1019,12 @@ class ZoracApp(App):
         )
 
     async def cmd_summarize(self, _args: list[str]):
-        """Handle /summarize — force conversation summarization."""
+        """Handle /summarize — force conversation summarization.
+
+        Unlike auto-summarization (triggered by token limit), this allows
+        users to manually condense their conversation at any time. Useful
+        for cleaning up long conversations even before hitting the limit.
+        """
         assert self.client is not None
         if len(self.messages) <= KEEP_RECENT_MESSAGES + 1:
             self._log_system(
@@ -711,12 +1033,20 @@ class ZoracApp(App):
                 style="yellow",
             )
         else:
+            # auto=False tells the summarizer to show "as requested"
+            # instead of "token limit approaching"
             await self._summarize_messages(auto=False)
             save_session(self.messages)
             self._log_system("Session saved with summary", style="green")
 
     async def cmd_summary(self, _args: list[str]):
-        """Handle /summary — display the current conversation summary."""
+        """Handle /summary — display the current conversation summary if one exists.
+
+        The summary message (if present) is always at index 1 in the messages
+        list, right after the system message. It's identified by the
+        "Previous conversation summary:" prefix that summarize_old_messages
+        adds when creating it.
+        """
         summary_found = False
         if len(self.messages) > 1 and self.messages[1].get("role") == "system":
             content = self.messages[1].get("content", "")
@@ -736,17 +1066,38 @@ class ZoracApp(App):
             )
 
     async def cmd_reconnect(self, _args: list[str]):
-        """Handle /reconnect — retry connection to the vLLM server."""
+        """Handle /reconnect — retry connection to the vLLM server.
+
+        Useful when the server was started after Zorac, or after a network
+        interruption. Simply re-runs the connection check.
+        """
         assert self.client is not None
         self.is_connected = await self._check_connection()
         if not self.is_connected:
             self._log_system("Connection failed. Still offline.", style="bold yellow")
 
     async def cmd_config(self, args: list[str]):
-        """Handle /config — manage configuration settings at runtime."""
+        """Handle /config — manage configuration settings at runtime.
+
+        Supports three subcommands:
+          /config list           — Show all current settings
+          /config set KEY VALUE  — Update a setting (persisted to config file)
+          /config get KEY        — Show a specific setting's value
+
+        When a setting is changed via /config set, we:
+          1. Validate the value (type checking for numeric fields, encoding validation)
+          2. Save to the config file (persists across restarts)
+          3. Update the in-memory value on the ZoracApp instance (takes effect immediately)
+          4. For some settings (like VLLM_BASE_URL), also update the client object
+
+        Settings are stored as strings in the config file but converted to
+        their appropriate types when loaded into the ZoracApp instance.
+        """
         assert self.client is not None
 
+        # --- /config list: Show all current configuration values ---
         if len(args) == 1 or args[1] == "list":
+            # Mask the API key for security — show only first 4 chars
             self._log_system(
                 f"Configuration:\n"
                 f"  VLLM_BASE_URL:      {self.vllm_base_url}\n"
@@ -763,7 +1114,9 @@ class ZoracApp(App):
             )
 
         elif args[1] == "set" and len(args) >= 4:
+            # --- /config set KEY VALUE: Update a configuration setting ---
             key = args[2].upper()
+            # Join remaining args as value to support values with spaces
             value = " ".join(args[3:])
 
             if key not in DEFAULT_CONFIG:
@@ -772,7 +1125,8 @@ class ZoracApp(App):
                     style="red",
                 )
             else:
-                # Validate
+                # Validate the value before saving. Each setting type has its own
+                # validation rules to prevent invalid configurations.
                 if key == "TEMPERATURE":
                     try:
                         float(value)
@@ -792,11 +1146,15 @@ class ZoracApp(App):
                         self._log_system(f"Invalid tiktoken encoding: {value}", style="red")
                         return
 
+                # Save to config file and update in-memory state
                 config = load_config()
                 config[key] = value
                 if save_config(config):
                     self._log_system(f"Updated {key} in {CONFIG_FILE}", style="green")
 
+                    # Apply the change to the running instance immediately.
+                    # Each setting has its own update logic because some require
+                    # updating the client object, others need type conversion, etc.
                     if key == "VLLM_BASE_URL":
                         self.vllm_base_url = value.strip().rstrip("/")
                         self.client.base_url = self.vllm_base_url
@@ -843,6 +1201,7 @@ class ZoracApp(App):
                         self._log_system(f"Code theme updated to {value}.", style="green")
 
         elif args[1] == "get" and len(args) >= 3:
+            # --- /config get KEY: Show a specific setting's current value ---
             key = args[2].upper()
             settings_map = {
                 "VLLM_BASE_URL": self.vllm_base_url,
@@ -864,6 +1223,7 @@ class ZoracApp(App):
                     style="red",
                 )
         else:
+            # --- Invalid /config usage: show help ---
             self._log_system(
                 "Usage:\n"
                 "  /config list               - Show current configuration\n"
@@ -877,8 +1237,19 @@ def main():
 
     First-time setup runs BEFORE Textual enters the alternate screen,
     since run_first_time_setup() uses input() which doesn't work in
-    Textual's alternate screen.
+    Textual's alternate screen. Once setup is complete (or skipped for
+    returning users), we launch the Textual app.
+
+    contextlib.suppress(KeyboardInterrupt) catches the final Ctrl+C that
+    might occur during shutdown, preventing an ugly traceback when the
+    user exits.
+
+    This function is referenced in pyproject.toml as the console script
+    entry point: [project.scripts] zorac = "zorac.main:main"
     """
+    # First-time setup: guide new users through initial configuration.
+    # This must happen before Textual takes over the terminal because
+    # the setup wizard uses standard input() prompts.
     if is_first_run():
         from .utils import print_header
 
