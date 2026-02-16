@@ -62,8 +62,7 @@ from zorac import (
     save_session,
     summarize_old_messages,
 )
-from zorac.commands import get_help_text, get_system_prompt_commands
-from zorac.main import get_initial_system_message
+from zorac.commands import get_help_text, get_initial_system_message, get_system_prompt_commands
 
 
 class TestCountTokens:

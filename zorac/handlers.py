@@ -11,6 +11,7 @@ import datetime
 from typing import TYPE_CHECKING, Any
 
 import tiktoken
+from openai import AsyncOpenAI
 from textual.containers import VerticalScroll
 from textual.widgets import Markdown, Static
 
@@ -28,7 +29,6 @@ from .session import load_session, save_session
 from .utils import count_tokens
 
 if TYPE_CHECKING:
-    from openai import AsyncOpenAI
     from openai.types.chat import ChatCompletionMessageParam
 
 
@@ -293,7 +293,9 @@ class CommandHandlersMixin:
                     # updating the client object, others need type conversion, etc.
                     if key == "VLLM_BASE_URL":
                         self.vllm_base_url = value.strip().rstrip("/")
-                        self.client.base_url = self.vllm_base_url
+                        self.client = AsyncOpenAI(
+                            base_url=self.vllm_base_url, api_key=self.vllm_api_key
+                        )
                         self._log_system(
                             "Base URL updated. Connection will be verified on next message.",
                             style="yellow",
@@ -302,7 +304,9 @@ class CommandHandlersMixin:
                         self.vllm_model = value
                     elif key == "VLLM_API_KEY":
                         self.vllm_api_key = value
-                        self.client.api_key = self.vllm_api_key
+                        self.client = AsyncOpenAI(
+                            base_url=self.vllm_base_url, api_key=self.vllm_api_key
+                        )
                     elif key == "TEMPERATURE":
                         self.temperature = float(value)
                         self._log_system(
