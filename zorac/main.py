@@ -65,6 +65,7 @@ from openai import AsyncOpenAI
 from openai.types.chat import ChatCompletionMessageParam
 from textual import work
 from textual.app import App, ComposeResult
+from textual.binding import Binding
 from textual.containers import Vertical, VerticalScroll
 from textual.suggester import SuggestFromList
 from textual.widgets import Input, Markdown, Static
@@ -112,6 +113,20 @@ def get_initial_system_message() -> str:
     base_message = f"You are Zorac, a helpful AI assistant. Today's date is {today}."
     command_info = get_system_prompt_commands()
     return f"{base_message}{command_info}"
+
+
+class TabCompleteInput(Input):
+    """Input widget that accepts suggestions with Tab."""
+
+    BINDINGS = [
+        Binding("tab", "accept_suggestion", "Accept suggestion", show=False),
+    ]
+
+    def action_accept_suggestion(self) -> None:
+        """Accept the current suggestion if one exists."""
+        if self._suggestion:
+            self.value = self._suggestion
+            self.cursor_position = len(self.value)
 
 
 class ZoracApp(App):
@@ -258,7 +273,7 @@ class ZoracApp(App):
         all_triggers = sorted(self.command_handlers.keys())
         yield VerticalScroll(id="chat-log")
         yield Vertical(
-            Input(
+            TabCompleteInput(
                 id="user-input",
                 placeholder="Type your message or /<command>",
                 suggester=SuggestFromList(all_triggers, case_sensitive=False),
