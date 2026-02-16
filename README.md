@@ -72,12 +72,6 @@ That's it. Your conversation is automatically saved and restored between session
 
 ![Zorac Chat Interface](screenshots/zorac-screenshot-1.png)
 
-### Token Management & Commands
-
-*Built-in commands for session management and token tracking*
-
-![Token Usage and Commands](screenshots/zorac-screenshot-2.png)
-
 ## Features
 
 - **Rich Terminal UI** — Markdown rendering, syntax-highlighted code blocks (configurable theme), left-aligned 60% width layout
