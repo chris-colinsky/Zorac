@@ -18,7 +18,7 @@ This documentation site goes beyond "how to install" and explains the **why** be
 
     Understand the fundamentals: how LLMs generate text, why quantization lets you run 24B-parameter models on a gaming GPU, how inference servers work, and how to manage context windows.
 
-    [:octicons-arrow-right-24: Start with Concepts](site/concepts/quantization.md)
+    [:octicons-arrow-right-24: Start with Concepts](site/concepts/how-llms-work.md)
 
 -   **Guides**
 
