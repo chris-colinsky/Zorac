@@ -54,7 +54,7 @@ markdown_extensions:
       permalink: true
 
 nav:
-  - Home: site/index.md
+  - Home: index.md
   - Concepts:
       - How LLMs Work: site/concepts/how-llms-work.md
       - Quantization: site/concepts/quantization.md

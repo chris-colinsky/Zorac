@@ -18,7 +18,7 @@ This documentation site goes beyond "how to install" and explains the **why** be
 
     Understand the fundamentals: how LLMs generate text, why quantization lets you run 24B-parameter models on a gaming GPU, how inference servers work, and how to manage context windows.
 
-    [:octicons-arrow-right-24: Start with Concepts](concepts/quantization.md)
+    [:octicons-arrow-right-24: Start with Concepts](site/concepts/quantization.md)
 
 -   **Guides**
 
@@ -26,7 +26,7 @@ This documentation site goes beyond "how to install" and explains the **why** be
 
     Step-by-step guides for building each component: setting up a vLLM inference server, building a terminal UI with Textual, and configuring multi-GPU training.
 
-    [:octicons-arrow-right-24: Browse Guides](guides/building-the-tui.md)
+    [:octicons-arrow-right-24: Browse Guides](site/guides/building-the-tui.md)
 
 -   **Walkthroughs**
 
@@ -34,7 +34,7 @@ This documentation site goes beyond "how to install" and explains the **why** be
 
     Trace through the actual source code to see how everything connects. Follow a message from keypress to rendered response, or understand how streaming markdown works.
 
-    [:octicons-arrow-right-24: Read Walkthroughs](walkthroughs/what-happens-on-enter.md)
+    [:octicons-arrow-right-24: Read Walkthroughs](site/walkthroughs/what-happens-on-enter.md)
 
 -   **Decisions**
 
@@ -42,7 +42,7 @@ This documentation site goes beyond "how to install" and explains the **why** be
 
     Architecture Decision Records explaining _why_ we chose Textual over other TUI frameworks, AWQ over other quantization formats, and other key trade-offs.
 
-    [:octicons-arrow-right-24: See Decisions](decisions/why-textual.md)
+    [:octicons-arrow-right-24: See Decisions](site/decisions/why-textual.md)
 
 </div>
 
@@ -62,7 +62,7 @@ This documentation site goes beyond "how to install" and explains the **why** be
 
 | Getting Started | Reference |
 |----------------|-----------|
-| [Install Zorac](../INSTALLATION.md) | [Configuration Reference](../CONFIGURATION.md) |
-| [Set up a vLLM Server](../SERVER_SETUP.md) | [Usage & Commands](../USAGE.md) |
-| [Understand Quantization](concepts/quantization.md) | [Development Guide](../DEVELOPMENT.md) |
-| [What Happens When You Press Enter](walkthroughs/what-happens-on-enter.md) | [GitHub Repository](https://github.com/chris-colinsky/Zorac) |
+| [Install Zorac](INSTALLATION.md) | [Configuration Reference](CONFIGURATION.md) |
+| [Set up a vLLM Server](SERVER_SETUP.md) | [Usage & Commands](USAGE.md) |
+| [Understand Quantization](site/concepts/quantization.md) | [Development Guide](DEVELOPMENT.md) |
+| [What Happens When You Press Enter](site/walkthroughs/what-happens-on-enter.md) | [GitHub Repository](https://github.com/chris-colinsky/Zorac) |
