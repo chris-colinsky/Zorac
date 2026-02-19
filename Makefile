@@ -1,4 +1,4 @@
-.PHONY: help install install-dev test test-verbose test-coverage lint format type-check clean pre-commit run all-checks
+.PHONY: help install install-dev test test-verbose test-coverage lint format type-check clean pre-commit run all-checks docs-serve docs-build docs-clean
 
 # Default target
 .DEFAULT_GOAL := help
@@ -59,6 +59,7 @@ clean: ## Remove generated files and caches
 	rm -rf dist
 	rm -rf build
 	rm -rf *.egg-info
+	rm -rf site
 	find . -type d -name __pycache__ -exec rm -rf {} +
 	find . -type f -name '*.pyc' -delete
 	find . -type f -name '*.pyo' -delete
@@ -91,6 +92,15 @@ dev-setup: install-dev pre-commit-install ## Complete development setup
 	@echo "  1. Copy .env.example to .env and configure your vLLM server"
 	@echo "  2. Run 'make test' to verify everything works"
 	@echo "  3. Run 'make run' to start the chat client"
+
+docs-serve: ## Serve documentation locally with live reload
+	uv run --extra docs mkdocs serve
+
+docs-build: ## Build documentation site
+	uv run --extra docs mkdocs build --strict
+
+docs-clean: ## Remove built documentation
+	rm -rf site
 
 stats: ## Show project statistics
 	@echo "Project Statistics:"

@@ -539,7 +539,7 @@ AI-powered development tools can use this file to provide better suggestions and
 
 ## Contribution Guidelines
 
-See [CONTRIBUTING.md](../CONTRIBUTING.md) for detailed contribution guidelines.
+See [CONTRIBUTING.md](https://github.com/chris-colinsky/Zorac/blob/main/CONTRIBUTING.md) for detailed contribution guidelines.
 
 ### Quick Checklist
 
@@ -614,4 +614,4 @@ For questions or issues:
 
 ## License
 
-MIT License - see [LICENSE](../LICENSE) for details.
+MIT License - see [LICENSE](https://github.com/chris-colinsky/Zorac/blob/main/LICENSE) for details.

@@ -1,0 +1,79 @@
+site_name: Zorac - Learn AI Engineering with Real Hardware
+site_url: https://chris-colinsky.github.io/Zorac/
+site_description: >-
+  Learn AI engineering by building a self-hosted LLM chat client on consumer GPUs.
+  Concepts, guides, and walkthroughs covering quantization, inference servers,
+  TUI development, and context management.
+site_author: Chris Colinsky
+repo_url: https://github.com/chris-colinsky/Zorac
+repo_name: chris-colinsky/Zorac
+
+docs_dir: docs/
+
+theme:
+  name: material
+  palette:
+    - scheme: slate
+      primary: deep purple
+      accent: deep purple
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+    - scheme: default
+      primary: deep purple
+      accent: deep purple
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - content.code.copy
+    - content.code.annotate
+    - search.suggest
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.keys
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - attr_list
+  - md_in_html
+  - toc:
+      permalink: true
+
+nav:
+  - Home: site/index.md
+  - Concepts:
+      - How LLMs Work: site/concepts/how-llms-work.md
+      - Quantization: site/concepts/quantization.md
+      - Inference Servers: site/concepts/inference-servers.md
+      - Context Management: site/concepts/context-management.md
+  - Guides:
+      - Building the TUI: site/guides/building-the-tui.md
+      - Server Setup: site/guides/server-setup.md
+      - Multi-GPU Training: site/guides/multi-gpu-training.md
+  - Walkthroughs:
+      - What Happens on Enter: site/walkthroughs/what-happens-on-enter.md
+      - Streaming Explained: site/walkthroughs/streaming-explained.md
+  - Decisions:
+      - Why Textual: site/decisions/why-textual.md
+      - Why AWQ: site/decisions/why-awq.md
+  - Reference:
+      - Installation: INSTALLATION.md
+      - Configuration: CONFIGURATION.md
+      - Usage: USAGE.md
+      - Server Setup: SERVER_SETUP.md
+      - Multi-GPU Training: TEST_TRAINING.md
+      - Development: DEVELOPMENT.md

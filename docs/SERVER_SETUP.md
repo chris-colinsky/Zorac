@@ -207,4 +207,4 @@ The standard Ubuntu snap for btop does not support NVIDIA GPUs. A custom binary 
 - Usage: Used for viewing system logs (`journalctl`), storage health, and terminal access without SSH.
 
 ## 5. Client Usage
-For instructions on how to use the interactive chat client, please refer to [README.md](README.md).
+For instructions on how to use the interactive chat client, please refer to [README.md](https://github.com/chris-colinsky/Zorac/blob/main/README.md).

@@ -28,6 +28,19 @@ Zorac uses a modular documentation structure:
 - **CHANGELOG.md** - Version history and release notes
 - **CONTRIBUTING.md** - Contribution guidelines
 
+### MkDocs Educational Documentation Site
+
+An MkDocs + Material theme site provides educational content (concepts, guides, walkthroughs, architecture decisions) alongside the reference docs above. Deployed to GitHub Pages at `https://chris-colinsky.github.io/Zorac/`.
+
+- **Config**: `mkdocs.yml` at project root, `docs_dir: docs/`
+- **Educational content**: `docs/site/` (index, concepts, guides, walkthroughs, decisions)
+- **Reference content**: existing `docs/*.md` files included in the nav
+- **Build output**: `site/` at project root (gitignored)
+- **Serve locally**: `make docs-serve` (live reload at `http://127.0.0.1:8000`)
+- **Build**: `make docs-build` (strict mode, catches broken links)
+- **Dependencies**: `uv sync --extra docs` (separate from `dev` extras)
+- **Deployment**: `.github/workflows/docs.yml` deploys on push to `main` when `docs/**` or `mkdocs.yml` change
+
 When users ask about installation, configuration, or usage, refer them to the appropriate docs/ file.
 
 ## File Structure

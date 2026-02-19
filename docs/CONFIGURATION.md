@@ -251,5 +251,5 @@ rm -rf ~/.zorac
 ## Next Steps
 
 - [Usage Guide](USAGE.md) - Learn how to use Zorac
-- [Commands Reference](COMMANDS.md) - All available commands
+- [Commands Reference](USAGE.md#available-commands) - All available commands
 - [Server Setup](SERVER_SETUP.md) - Set up your vLLM inference server

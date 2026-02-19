@@ -70,5 +70,8 @@ coverage.xml
 .env
 .env.local
 
+# MkDocs build output (root-level only, not docs/site/ source content)
+/site/
+
 # Lock files (uncomment if you don't want to commit)
 # uv.lock
