@@ -1,3 +1,21 @@
+[data-md-color-scheme="slate"] {
+  --md-primary-fg-color: #69bae9;
+  --md-primary-fg-color--light: #8fcbef;
+  --md-primary-fg-color--dark: #4a9fd4;
+  --md-accent-fg-color: #3c85c9;
+  --md-accent-fg-color--transparent: rgba(105, 186, 233, 0.1);
+  --md-typeset-a-color: #69bae9;
+}
+
+[data-md-color-scheme="default"] {
+  --md-primary-fg-color: #69bae9;
+  --md-primary-fg-color--light: #8fcbef;
+  --md-primary-fg-color--dark: #4a9fd4;
+  --md-accent-fg-color: #69bae9;
+  --md-accent-fg-color--transparent: rgba(105, 186, 233, 0.1);
+  --md-typeset-a-color: #69bae9;
+}
+
 .md-header__button.md-logo img {
   height: 1.6rem;
   width: auto;
