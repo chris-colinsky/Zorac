@@ -65,6 +65,7 @@ nav:
       - Quantization: site/concepts/quantization.md
       - Inference Servers: site/concepts/inference-servers.md
       - Context Management: site/concepts/context-management.md
+      - Prompt Engineering: site/concepts/prompt-engineering.md
   - Guides:
       - Building the TUI: site/guides/building-the-tui.md
       - Server Setup: site/guides/server-setup.md
