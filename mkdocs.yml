@@ -1,5 +1,5 @@
 site_name: Zorac - Learn AI Engineering with Real Hardware
-site_url: https://chris-colinsky.github.io/Zorac/
+site_url: https://zorac.lowgravitylab.com/
 site_description: >-
   Learn AI engineering by building a self-hosted LLM chat client on consumer GPUs.
   Concepts, guides, and walkthroughs covering quantization, inference servers,

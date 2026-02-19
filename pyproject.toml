@@ -64,7 +64,7 @@ docs = [
 
 [project.urls]
 Homepage = "https://github.com/chris-colinsky/zorac"
-Documentation = "https://chris-colinsky.github.io/Zorac/"
+Documentation = "https://zorac.lowgravitylab.com/"
 Repository = "https://github.com/chris-colinsky/zorac"
 Issues = "https://github.com/chris-colinsky/zorac/issues"
 Changelog = "https://github.com/chris-colinsky/zorac/blob/main/CHANGELOG.md"

@@ -30,7 +30,7 @@ Zorac uses a modular documentation structure:
 
 ### MkDocs Educational Documentation Site
 
-An MkDocs + Material theme site provides educational content (concepts, guides, walkthroughs, architecture decisions) alongside the reference docs above. Deployed to GitHub Pages at `https://chris-colinsky.github.io/Zorac/`.
+An MkDocs + Material theme site provides educational content (concepts, guides, walkthroughs, architecture decisions) alongside the reference docs above. Deployed to GitHub Pages at `https://zorac.lowgravitylab.com/`.
 
 - **Config**: `mkdocs.yml` at project root, `docs_dir: docs/`
 - **Educational content**: `docs/site/` (index, concepts, guides, walkthroughs, decisions)
