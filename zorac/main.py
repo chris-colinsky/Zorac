@@ -277,7 +277,7 @@ class ZoracApp(CommandHandlersMixin, StreamingMixin, HistoryMixin, App):
         self.vllm_base_url = get_setting("VLLM_BASE_URL", "http://localhost:8000/v1")
         self.vllm_api_key = get_setting("VLLM_API_KEY", "EMPTY")
         self.vllm_model = get_setting(
-            "VLLM_MODEL", "stelterlab/Mistral-Small-24B-Instruct-2501-AWQ"
+            "VLLM_MODEL", "dark-side-of-the-code/Mistral-Small-24B-Instruct-2501-AWQ"
         )
         self.temperature = get_float_setting("TEMPERATURE", 0.1)
         self.max_output_tokens = get_int_setting("MAX_OUTPUT_TOKENS", 4000)

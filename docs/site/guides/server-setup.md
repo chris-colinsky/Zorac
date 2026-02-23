@@ -124,7 +124,7 @@ python -c "import vllm; print(vllm.__version__)"
 The simplest way to start vLLM:
 
 ```bash
-vllm serve "stelterlab/Mistral-Small-24B-Instruct-2501-AWQ" \
+vllm serve "dark-side-of-the-code/Mistral-Small-24B-Instruct-2501-AWQ" \
     --quantization awq_marlin \
     --max-model-len 16384 \
     --gpu-memory-utilization 0.85 \
@@ -171,7 +171,7 @@ Environment="CUDA_VISIBLE_DEVICES=0"
 Environment="PYTHONUNBUFFERED=1"
 
 ExecStart=/home/your-username/vllm-serve/venv/bin/vllm serve \
-    "stelterlab/Mistral-Small-24B-Instruct-2501-AWQ" \
+    "dark-side-of-the-code/Mistral-Small-24B-Instruct-2501-AWQ" \
     --quantization awq_marlin \
     --max-model-len 16384 \
     --gpu-memory-utilization 0.85 \

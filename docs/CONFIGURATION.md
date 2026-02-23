@@ -27,7 +27,7 @@ Edit `.env` with your settings:
 # Server Connection
 VLLM_BASE_URL=http://localhost:8000/v1  # Change to your vLLM server URL
 VLLM_API_KEY=EMPTY                       # vLLM doesn't require authentication
-VLLM_MODEL=stelterlab/Mistral-Small-24B-Instruct-2501-AWQ
+VLLM_MODEL=dark-side-of-the-code/Mistral-Small-24B-Instruct-2501-AWQ
 
 # Token Limits (optional - defaults shown)
 # MAX_INPUT_TOKENS=12000
@@ -71,7 +71,7 @@ VLLM_BASE_URL="http://192.168.1.100:8000/v1" uv run zorac
 |---------|---------|-------------|
 | `VLLM_BASE_URL` | `http://localhost:8000/v1` | vLLM server endpoint |
 | `VLLM_API_KEY` | `EMPTY` | API key (vLLM doesn't require one) |
-| `VLLM_MODEL` | `stelterlab/Mistral-Small-24B-Instruct-2501-AWQ` | Model name |
+| `VLLM_MODEL` | `dark-side-of-the-code/Mistral-Small-24B-Instruct-2501-AWQ` | Model name |
 
 ### Token Limits
 

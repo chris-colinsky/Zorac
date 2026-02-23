@@ -125,7 +125,7 @@ You: /config set TEMPERATURE 0.7
 | **Server** | | |
 | `VLLM_BASE_URL` | `http://localhost:8000/v1` | vLLM server endpoint |
 | `VLLM_API_KEY` | `EMPTY` | API key (vLLM doesn't require one) |
-| `VLLM_MODEL` | `stelterlab/Mistral-Small-24B-Instruct-2501-AWQ` | Model to use |
+| `VLLM_MODEL` | `dark-side-of-the-code/Mistral-Small-24B-Instruct-2501-AWQ` | Model to use |
 | **Model Parameters** | | |
 | `TEMPERATURE` | `0.1` | Randomness: `0.0` = deterministic, `0.7` = balanced, `1.0`+ = creative |
 | `MAX_OUTPUT_TOKENS` | `4000` | Maximum tokens per response |
@@ -147,7 +147,7 @@ You: /config list
 
 Configuration:
   VLLM_BASE_URL:        http://localhost:8000/v1
-  VLLM_MODEL:           stelterlab/Mistral-Small-24B-Instruct-2501-AWQ
+  VLLM_MODEL:           dark-side-of-the-code/Mistral-Small-24B-Instruct-2501-AWQ
   VLLM_API_KEY:         EMPT...
   MAX_INPUT_TOKENS:     12000
   MAX_OUTPUT_TOKENS:    4000

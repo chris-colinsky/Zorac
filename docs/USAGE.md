@@ -192,7 +192,7 @@ You: /config list
 
 Configuration:
   VLLM_BASE_URL:      http://localhost:8000/v1
-  VLLM_MODEL:         stelterlab/Mistral-Small-24B-Instruct-2501-AWQ
+  VLLM_MODEL:         dark-side-of-the-code/Mistral-Small-24B-Instruct-2501-AWQ
   MAX_INPUT_TOKENS:   12000
   MAX_OUTPUT_TOKENS:  4000
   KEEP_RECENT_MESSAGES: 6

@@ -62,7 +62,7 @@ vLLM runs as a standalone HTTP server that:
 A typical startup command:
 
 ```bash
-vllm serve "stelterlab/Mistral-Small-24B-Instruct-2501-AWQ" \
+vllm serve "dark-side-of-the-code/Mistral-Small-24B-Instruct-2501-AWQ" \
     --quantization awq_marlin \
     --max-model-len 16384 \
     --gpu-memory-utilization 0.85 \
@@ -190,7 +190,7 @@ For Zorac's use case — interactive chat on an NVIDIA RTX 4090 — vLLM with AW
 Here are the most important vLLM flags for a Zorac deployment:
 
 ```bash
-vllm serve "stelterlab/Mistral-Small-24B-Instruct-2501-AWQ" \
+vllm serve "dark-side-of-the-code/Mistral-Small-24B-Instruct-2501-AWQ" \
     --quantization awq_marlin \       # 10x faster than generic AWQ
     --max-model-len 16384 \           # 16k context window
     --gpu-memory-utilization 0.85 \   # Leave 15% VRAM headroom
@@ -231,7 +231,7 @@ curl http://localhost:8000/v1/models
 # Test a completion
 curl http://localhost:8000/v1/chat/completions \
   -H "Content-Type: application/json" \
-  -d '{"model": "stelterlab/Mistral-Small-24B-Instruct-2501-AWQ",
+  -d '{"model": "dark-side-of-the-code/Mistral-Small-24B-Instruct-2501-AWQ",
        "messages": [{"role": "user", "content": "Hello!"}]}'
 
 # Monitor GPU usage

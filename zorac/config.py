@@ -49,7 +49,7 @@ load_dotenv()
 DEFAULT_CONFIG = {
     "VLLM_BASE_URL": "http://localhost:8000/v1",  # vLLM's default OpenAI-compatible endpoint
     "VLLM_API_KEY": "EMPTY",  # vLLM doesn't require auth by default; "EMPTY" is conventional
-    "VLLM_MODEL": "stelterlab/Mistral-Small-24B-Instruct-2501-AWQ",  # 24B AWQ-quantized model
+    "VLLM_MODEL": "dark-side-of-the-code/Mistral-Small-24B-Instruct-2501-AWQ",  # 24B AWQ-quantized model
     "MAX_INPUT_TOKENS": "12000",  # Max tokens for system prompt + conversation history
     "MAX_OUTPUT_TOKENS": "4000",  # Max tokens the model can generate per response
     "KEEP_RECENT_MESSAGES": "6",  # Messages preserved during auto-summarization

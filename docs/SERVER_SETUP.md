@@ -120,8 +120,8 @@ Environment="PYTHONUNBUFFERED=1"
 Environment="VLLM_LOGGING_LEVEL=INFO"
 
 ExecStart=/home/commander/Sandbox/vllm-serve/venv/bin/vllm serve \
-    "stelterlab/Mistral-Small-24B-Instruct-2501-AWQ" \
-    --tokenizer "stelterlab/Mistral-Small-24B-Instruct-2501-AWQ" \
+    "dark-side-of-the-code/Mistral-Small-24B-Instruct-2501-AWQ" \
+    --tokenizer "dark-side-of-the-code/Mistral-Small-24B-Instruct-2501-AWQ" \
     --tokenizer-mode mistral \
     --quantization awq_marlin \
     --dtype auto \
@@ -169,7 +169,7 @@ We are using `Mistral-Small-24B-Instruct-2501`. This model represents the "sweet
 - **GGUF**: While efficient for RAM, it is not optimized for vLLM's tensor parallelism; results in CPU-like speeds (~6 t/s).
 - **AWQ (4-bit)**: Compresses the model to ~14GB VRAM, leaving ~10GB for the KV Cache (Context Window). This allows us to run a 24B model at 60-65 tokens/sec, a feat previously impossible on single consumer cards.
 
-**Target Model**: `stelterlab/Mistral-Small-24B-Instruct-2501-AWQ`
+**Target Model**: `dark-side-of-the-code/Mistral-Small-24B-Instruct-2501-AWQ`
 
 
 ## 3. Fine-Tuning Environment (Multi-GPU)

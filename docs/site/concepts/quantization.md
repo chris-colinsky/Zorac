@@ -109,7 +109,7 @@ GGUF is the native format for [llama.cpp](https://github.com/ggerganov/llama.cpp
 
 ## Why Zorac Defaults to AWQ + Marlin
 
-Zorac uses `stelterlab/Mistral-Small-24B-Instruct-2501-AWQ` as its default model. Here's why:
+Zorac uses `dark-side-of-the-code/Mistral-Small-24B-Instruct-2501-AWQ` as its default model. Here's why:
 
 ### 1. Performance: Marlin Kernels
 
