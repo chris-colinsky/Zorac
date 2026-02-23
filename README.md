@@ -44,7 +44,7 @@ Upgrade anytime with `brew upgrade zorac` or `pipx upgrade zorac`.
 
 ### 1. Start a vLLM Server
 
-You need a [vLLM](https://docs.vllm.ai/) inference server running on a machine with an NVIDIA GPU. See [Server Setup](docs/SERVER_SETUP.md) for a complete walkthrough.
+You need a [vLLM](https://docs.vllm.ai/) inference server running on a machine with an NVIDIA GPU. See [Server Setup](https://zorac.lowgravitylab.com/SERVER_SETUP/) for a complete walkthrough.
 
 ### 2. Run Zorac
 
@@ -70,7 +70,7 @@ That's it. Your conversation is automatically saved and restored between session
 
 *Interactive chat with real-time streaming responses, markdown rendering, and performance metrics*
 
-![Zorac Chat Interface](screenshots/zorac-screenshot-1.png)
+![Zorac Chat Interface](https://raw.githubusercontent.com/chris-colinsky/Zorac/refs/heads/main/screenshots/zorac-screenshot-1.png)
 
 ## Features
 
@@ -167,7 +167,7 @@ Settings are resolved in this order (highest priority first):
 2. **Config file** — `~/.zorac/config.json` (written by `/config set` or the setup wizard)
 3. **Defaults** — Built-in values shown in the table above
 
-Source users can also use a `.env` file in the project root. See [Configuration Guide](docs/CONFIGURATION.md) for details.
+Source users can also use a `.env` file in the project root. See [Configuration Guide](https://zorac.lowgravitylab.com/CONFIGURATION/) for details.
 
 ## Session Management
 
@@ -213,7 +213,7 @@ Runs on **consumer gaming GPUs**:
 | RTX 4070 Ti | 12GB | Up to 7B (AWQ) | 40-45 tok/s |
 | RTX 3080 | 10GB | Up to 7B (AWQ) | 35-40 tok/s |
 
-See [Server Setup](docs/SERVER_SETUP.md) for optimization details.
+See [Server Setup](https://zorac.lowgravitylab.com/SERVER_SETUP/) for optimization details.
 
 ## Why Mistral-Small-24B-AWQ?
 
@@ -286,13 +286,13 @@ Any model with vLLM support: Llama, Qwen, Phi, DeepSeek, etc. Just change the `V
 
 ## Documentation
 
-- **[Installation Guide](docs/INSTALLATION.md)** — All installation methods (Homebrew, pip, pipx, source)
-- **[Configuration Guide](docs/CONFIGURATION.md)** — Full settings reference and common scenarios
-- **[Usage Guide](docs/USAGE.md)** — Detailed command usage, session management, tips
-- **[Server Setup](docs/SERVER_SETUP.md)** — Complete vLLM server installation and optimization
-- **[Development Guide](docs/DEVELOPMENT.md)** — Contributing, testing, release process
-- **[Changelog](CHANGELOG.md)** — Version history and release notes
-- **[Contributing](CONTRIBUTING.md)** — Contribution guidelines
+- **[Installation Guide](https://zorac.lowgravitylab.com/INSTALLATION/)** — All installation methods (Homebrew, pip, pipx, source)
+- **[Configuration Guide](https://zorac.lowgravitylab.com/CONFIGURATION/)** — Full settings reference and common scenarios
+- **[Usage Guide](https://zorac.lowgravitylab.com/USAGE/)** — Detailed command usage, session management, tips
+- **[Server Setup](https://zorac.lowgravitylab.com/SERVER_SETUP/)** — Complete vLLM server installation and optimization
+- **[Development Guide](https://zorac.lowgravitylab.com/DEVELOPMENT/)** — Contributing, testing, release process
+- **[Changelog](https://github.com/chris-colinsky/Zorac/blob/main/CHANGELOG.md)** — Version history and release notes
+- **[Contributing](https://github.com/chris-colinsky/Zorac/blob/main/CONTRIBUTING.md)** — Contribution guidelines
 
 ## Requirements
 
@@ -302,15 +302,15 @@ Any model with vLLM support: Llama, Qwen, Phi, DeepSeek, etc. Just change the `V
 
 ## License
 
-MIT License — see [LICENSE](LICENSE) for details.
+MIT License — see [LICENSE](https://github.com/chris-colinsky/Zorac/blob/main/LICENSE) for details.
 
 ## Contributing
 
-Contributions are welcome! See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+Contributions are welcome! See [CONTRIBUTING.md](https://github.com/chris-colinsky/Zorac/blob/main/CONTRIBUTING.md) for guidelines.
 
 ## Support
 
-- [Documentation](docs/)
+- [Documentation](https://zorac.lowgravitylab.com/)
 - [Report bugs](https://github.com/chris-colinsky/Zorac/issues)
 - [Request features](https://github.com/chris-colinsky/Zorac/issues)
 - [vLLM Documentation](https://docs.vllm.ai/en/stable/) for server issues
