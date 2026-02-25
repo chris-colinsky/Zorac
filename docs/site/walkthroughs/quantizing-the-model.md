@@ -2,7 +2,7 @@
 
 This walkthrough traces the complete quantization pipeline that produces Zorac's default model — [`dark-side-of-the-code/Mistral-Small-24B-Instruct-2501-AWQ`](https://huggingface.co/dark-side-of-the-code/Mistral-Small-24B-Instruct-2501-AWQ). You'll learn how AWQ quantization works at the code level, why every parameter was chosen, and how a 48GB model becomes a 12GB one that runs at 60+ tok/s on a single RTX 4090.
 
-The full script lives in [`quant/quantize_mistral.py`](https://github.com/chris-colinsky/Zorac/blob/main/quant/quantize_mistral.py) — 72 lines of Python that do the entire job.
+The full script lives in [`quant-lab/quantize_mistral.py`](https://github.com/chris-colinsky/Zorac/blob/main/quant-lab/quantize_mistral.py) — 72 lines of Python that do the entire job.
 
 !!! info "Related Reading"
     For background on what quantization is and how AWQ compares to other formats, see [Quantization Concepts](../concepts/quantization.md). For the decision rationale behind choosing AWQ, see [Why AWQ](../decisions/why-awq.md). This page focuses on the practical process of producing a quantized model yourself.
@@ -299,7 +299,7 @@ This means anyone can use the model without running the quantization themselves 
 To reproduce or modify the quantization:
 
 ```bash
-cd quant/
+cd quant-lab/
 
 # Install dependencies (Python 3.11 required)
 uv sync

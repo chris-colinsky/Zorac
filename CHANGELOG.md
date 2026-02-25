@@ -5,6 +5,31 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.0] - 2026-02-25
+
+### Added
+- **MkDocs Educational Site**: New documentation site at `zorac.lowgravitylab.com` built with MkDocs + Material theme, deployed to GitHub Pages via CI
+  - Concepts: Inference servers, quantization
+  - Guides: Server setup, building the TUI, multi-GPU training
+  - Walkthroughs: What happens on Enter, streaming explained, quantizing the model
+  - Decisions: Why Textual, Why AWQ
+  - Prompt Engineering section
+  - Custom styling and color scheme
+- **Quantization Toolkit** (`quant-lab/`): Standalone single-script tool for quantizing LLMs to AWQ format for vLLM
+  - `quantize_mistral.py`: Quantizes Mistral-Small-24B to W4A16_ASYM (4-bit weights, 16-bit activations) using llmcompressor's sequential pipeline
+  - Designed for single RTX 4090 — processes one transformer layer at a time on GPU, keeping the full model in system RAM
+  - Includes calibration with 256 samples from `HuggingFaceH4/ultrachat_200k`
+  - Own `pyproject.toml`, `uv.lock`, `README.md`, and `CLAUDE.md` for independent use
+  - Detailed documentation covering hardware requirements, how the pipeline works, quantization parameters, and model card template
+
+### Changed
+- **Model Reference**: Updated default model to `dark-side-of-the-code/Mistral-Small-24B-Instruct-2501-AWQ` across all documentation and configuration
+- **Documentation Links**: Updated all documentation links to point to the new site (`zorac.lowgravitylab.com`)
+- **Documentation Enhancements**: Expanded content on AWQ quantization, Textual TUI setup, inference servers, server setup guides, and configuration reference
+
+### Fixed
+- **Type Checking**: Resolved all mypy errors in mixin type stubs and monkey-patched methods
+
 ## [1.3.1] - 2026-02-16
 
 ### Fixed
@@ -282,6 +307,8 @@ For users upgrading from development versions:
 - All previous environment variables still work as before
 - New configuration options are optional with sensible defaults
 
+[1.4.0]: https://github.com/chris-colinsky/zorac/releases/tag/v1.4.0
+[1.3.1]: https://github.com/chris-colinsky/zorac/releases/tag/v1.3.1
 [1.3.0]: https://github.com/chris-colinsky/zorac/releases/tag/v1.3.0
 [1.2.0]: https://github.com/chris-colinsky/zorac/releases/tag/v1.2.0
 [1.1.0]: https://github.com/chris-colinsky/zorac/releases/tag/v1.1.0

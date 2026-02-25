@@ -48,7 +48,7 @@ zorac/
 ├── tests/                  # Test suite
 │   ├── test_commands.py   # Command registry tests
 │   └── test_zorac.py      # Comprehensive tests
-├── quant/                  # Quantization tooling
+├── quant-lab/              # Quantization tooling
 │   ├── quantize_mistral.py # AWQ quantization script
 │   └── README.md          # Quantization guide
 ├── docs/                   # Documentation

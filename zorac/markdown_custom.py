@@ -91,7 +91,7 @@ def _left_aligned_heading_rich_console(
 # This takes effect globally — every Markdown instance created after this point
 # will use left-aligned headings. The patch happens at import time, which is fine
 # because this module is imported early in the application lifecycle (via main.py).
-Heading.__rich_console__ = _left_aligned_heading_rich_console
+Heading.__rich_console__ = _left_aligned_heading_rich_console  # type: ignore[method-assign,assignment]
 
 
 class LeftAlignedMarkdown(Markdown):

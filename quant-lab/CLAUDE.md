@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-`quant` is a single-script tool for quantizing large language models to AWQ (Activation-aware Weight Quantization) format for use with vLLM. The current target is `mistralai/Mistral-Small-24B-Instruct-2501`, quantized to W4A16_ASYM (4-bit weights, 16-bit activations) compatible with NVIDIA Marlin/vLLM kernels.
+`quant-lab` is a single-script tool for quantizing large language models to AWQ (Activation-aware Weight Quantization) format for use with vLLM. The current target is `mistralai/Mistral-Small-24B-Instruct-2501`, quantized to W4A16_ASYM (4-bit weights, 16-bit activations) compatible with NVIDIA Marlin/vLLM kernels.
 
 ## Environment
 

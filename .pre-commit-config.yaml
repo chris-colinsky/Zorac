@@ -30,4 +30,6 @@ repos:
       - id: mypy
         additional_dependencies:
           - types-requests
+          - rich
+          - textual
         args: [--ignore-missing-imports]
