@@ -28,7 +28,7 @@ cp .env.example .env
 
 ## Project Structure
 
-```
+```text
 zorac/
 ├── zorac/                  # Main package
 │   ├── __init__.py        # Package exports
@@ -102,6 +102,7 @@ open htmlcov/index.html
 Current coverage: **51%** with **57 passing tests**
 
 The test suite covers:
+
 - **Token counting** with various message types
 - **Session management** (save/load, error handling)
 - **UI header rendering**
@@ -112,6 +113,7 @@ The test suite covers:
 - **Integration workflows** (save/load roundtrips, help feature)
 
 **Module coverage:**
+
 - `zorac/commands.py`: 100% coverage
 - `zorac/session.py`: 100% coverage
 - `zorac/console.py`: 100% coverage
@@ -125,6 +127,7 @@ The test suite covers:
 - `zorac/handlers.py`: 24% coverage
 
 **Coverage targets:**
+
 - Minimum 80% code coverage
 - All core functions tested
 - Edge cases and error paths covered
@@ -208,6 +211,7 @@ Install with `uv sync --extra docs`:
 ### Module Breakdown
 
 **zorac/commands.py** - Command Registry & System Message
+
 - Centralized registry of all interactive commands
 - `COMMANDS`: List of command definitions with descriptions
 - `get_help_text()`: Generates formatted help for `/help` display
@@ -216,32 +220,38 @@ Install with `uv sync --extra docs`:
 - Single source of truth for command documentation
 
 **zorac/config.py** - Configuration Management
+
 - Three-tier priority: Environment Variables > Config File > Defaults
 - Type-safe getters: `get_int_setting()`, `get_float_setting()`, `get_bool_setting()`
 - Runtime configuration via `/config` command
 - Persistent storage in `~/.zorac/config.json`
 
 **zorac/console.py** - Rich Console Singleton
+
 - Single Rich console instance for consistent formatting
 - Used across all modules for output
 
 **zorac/handlers.py** - Command Handlers (Mixin)
+
 - `CommandHandlersMixin`: All `cmd_*()` methods for `/help`, `/quit`, `/config`, etc.
 - Mixed into `ZoracApp` via Python MRO
 - Outputs via `_log_system()` / `_log_user()` methods from main app
 
 **zorac/history.py** - Command History (Mixin)
+
 - `HistoryMixin`: History load/save and Up/Down arrow navigation
 - `_load_history()`: Load from `~/.zorac/history`
 - `_save_history()`: Persist last 500 entries with multiline escaping
 - `on_key()`: Handles Up/Down arrow keys for readline-like history navigation
 
 **zorac/llm.py** - LLM Operations
+
 - `summarize_old_messages()`: Auto-summarization with status spinner
 - Handles API calls to vLLM server
 - Token limit management
 
 **zorac/main.py** - Textual TUI Application (Orchestrator)
+
 - `ZoracApp(CommandHandlersMixin, StreamingMixin, HistoryMixin, App)`: Main Textual application class
 - `compose()`: Yields `VerticalScroll#chat-log`, `ChatInput#user-input`, `Static#stats-bar`
 - `on_mount()` -> `_setup()`: Initialize `AsyncOpenAI` client, verify connection, load session
@@ -250,27 +260,32 @@ Install with `uv sync --extra docs`:
 - UI helpers: `_log_system()`, `_log_user()`, `_update_stats_bar()`, `_write_header()`
 
 **zorac/markdown_custom.py** - Custom Markdown Renderer
+
 - `LeftAlignedMarkdown`: Custom markdown renderer with left-aligned headings
 - Monkey-patches Rich's `Heading.__rich_console__` to remove centered heading panels
 - Provides cleaner, more readable terminal output
 - Maintains Rich styling (bold, colored) while forcing left justification
 
 **zorac/streaming.py** - LLM Streaming (Mixin)
+
 - `StreamingMixin`: `_stream_response()` worker method
 - Streams LLM response using `Markdown.get_stream()`, updates `Static#stats-bar` in real-time
 - Runs as `@work(exclusive=True)` background worker
 
 **zorac/session.py** - Session Persistence
+
 - `save_session()`: Saves conversation to JSON
 - `load_session()`: Restores conversation from disk
 - Error handling for invalid sessions
 
 **zorac/utils.py** - Utility Functions
+
 - `count_tokens()`: Uses tiktoken to count tokens in conversation
 - `print_header()`: Displays formatted welcome header
 - `check_connection()`: Verifies vLLM server connectivity
 
 **zorac/widgets.py** - Chat Input Widget
+
 - `ChatInput(TextArea)`: Multiline input widget with Enter to submit, Shift+Enter for newlines
 - Auto-resizes from 1 to 5 lines based on content
 - Inline command suggestions for `/commands`, accepted with Tab
@@ -308,6 +323,7 @@ if user_input.lower() == "/mycommand":
    - Update `README.md` if user-facing
 
 **Why use the command registry?**
+
 - Single source of truth for all commands
 - `/help` command automatically displays your new command
 - LLM automatically knows about your command and can suggest it to users
@@ -356,6 +372,7 @@ def _left_aligned_heading_rich_console(self, console, options):
 ```
 
 **Design Principles:**
+
 - Full-width output for assistant responses
 - Left-align all content to match "Assistant:" label
 - Use `Markdown.get_stream()` during streaming for real-time content updates
@@ -435,6 +452,7 @@ When you push the tag, GitHub Actions automatically:
 5. **Updates Homebrew formula** - Automatically updates `chris-colinsky/homebrew-zorac` with the new version, URL, and SHA256
 
 **Monitor the release:**
+
 - Visit: https://github.com/chris-colinsky/zorac/actions
 - Look for "Release" workflow
 - Verify PyPI publish and Homebrew update succeed
@@ -446,11 +464,14 @@ When you push the tag, GitHub Actions automatically:
 - Check PyPI: https://pypi.org/project/zorac/
 - Check GitHub Release: https://github.com/chris-colinsky/zorac/releases/tag/vX.Y.Z
 - Test installation:
+
   ```bash
   pip install zorac==X.Y.Z
   zorac --help
   ```
+
 - Test Homebrew (after formula update):
+
   ```bash
   brew upgrade zorac
   zorac --help
@@ -540,6 +561,7 @@ Zorac includes an innovative feature where the LLM assistant running inside the 
 ### Token Overhead
 
 The enhanced system prompt adds ~400-450 tokens to each session. This is acceptable because:
+
 - Default context limit is 12,000 tokens
 - Overhead is <4% of available context
 - Users benefit from having an assistant that knows how to use the tool
@@ -547,6 +569,7 @@ The enhanced system prompt adds ~400-450 tokens to each session. This is accepta
 ### Testing Command Awareness
 
 See `tests/test_zorac.py::TestHelpFeatureIntegration` for tests that verify:
+
 - System message includes all commands
 - Token overhead is reasonable
 - Help text is properly formatted
@@ -556,6 +579,7 @@ See `tests/test_zorac.py::TestHelpFeatureIntegration` for tests that verify:
 This project includes `CLAUDE.md`, a comprehensive development guide designed to help AI coding assistants understand the project.
 
 **What it contains:**
+
 - Detailed project structure and file purposes
 - Architecture overview and design decisions
 - Configuration documentation
@@ -635,6 +659,7 @@ python -c "from zorac.commands import get_system_prompt_commands; print(get_syst
 ## Support
 
 For questions or issues:
+
 1. Check existing [GitHub Issues](https://github.com/chris-colinsky/Zorac/issues)
 2. Review documentation in `docs/` directory
 3. Open a new issue with details
