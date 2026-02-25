@@ -15,7 +15,7 @@ A terminal chat client for running **local LLMs on consumer hardware**. Chat wit
 
 Perfect for developers who want a **self-hosted ChatGPT alternative** running on their gaming PC or homelab server. Also useful for local AI coding assistants, agentic workflows, and agent development.
 
-> Named after ZORAC, the intelligent Ganymean computer from James P. Hogan's *The Gentle Giants of Ganymede*.
+> Named after ZORAC, the intelligent Ganymean computer from James P. Hogan's _The Gentle Giants of Ganymede_.
 
 ## Install
 
@@ -68,7 +68,7 @@ That's it. Your conversation is automatically saved and restored between session
 
 ### Rich Terminal UI with Live Streaming
 
-*Interactive chat with real-time streaming responses, markdown rendering, and performance metrics*
+_Interactive chat with real-time streaming responses, markdown rendering, and performance metrics_
 
 ![Zorac Chat Interface](https://raw.githubusercontent.com/chris-colinsky/Zorac/main/screenshots/zorac-screenshot-1.png)
 
@@ -90,21 +90,21 @@ That's it. Your conversation is automatically saved and restored between session
 
 All commands start with `/` and auto-complete with Tab:
 
-| Command | Description |
-|---------|-------------|
-| `/help` | Show all available commands |
-| `/clear` | Reset conversation and start fresh |
-| `/save` | Manually save the current session |
-| `/load` | Reload session from disk (discards unsaved changes) |
-| `/tokens` | Show current token usage, limits, and remaining capacity |
-| `/summarize` | Force summarization of conversation history |
-| `/summary` | Display the current conversation summary |
-| `/reconnect` | Retry connection to the vLLM server |
-| `/config list` | Show all current settings |
-| `/config set KEY VALUE` | Update a setting (takes effect immediately) |
-| `/config get KEY` | Show a specific setting value |
-| `/quit` or `/exit` | Save session and exit |
-| `Ctrl+C` | Interrupt a streaming response without exiting |
+| Command                 | Description                                              |
+| ----------------------- | -------------------------------------------------------- |
+| `/help`                 | Show all available commands                              |
+| `/clear`                | Reset conversation and start fresh                       |
+| `/save`                 | Manually save the current session                        |
+| `/load`                 | Reload session from disk (discards unsaved changes)      |
+| `/tokens`               | Show current token usage, limits, and remaining capacity |
+| `/summarize`            | Force summarization of conversation history              |
+| `/summary`              | Display the current conversation summary                 |
+| `/reconnect`            | Retry connection to the vLLM server                      |
+| `/config list`          | Show all current settings                                |
+| `/config set KEY VALUE` | Update a setting (takes effect immediately)              |
+| `/config get KEY`       | Show a specific setting value                            |
+| `/quit` or `/exit`      | Save session and exit                                    |
+| `Ctrl+C`                | Interrupt a streaming response without exiting           |
 
 You can also ask the assistant about commands in natural language — the LLM is aware of all Zorac functionality.
 
@@ -112,7 +112,7 @@ You can also ask the assistant about commands in natural language — the LLM is
 
 All settings can be changed at runtime without restarting:
 
-```
+```text
 You: /config set TEMPERATURE 0.7
 ✓ Updated TEMPERATURE in ~/.zorac/config.json
 ✓ Temperature will take effect on next message.
@@ -120,29 +120,29 @@ You: /config set TEMPERATURE 0.7
 
 ### All Settings
 
-| Setting | Default | Description |
-|---------|---------|-------------|
-| **Server** | | |
-| `VLLM_BASE_URL` | `http://localhost:8000/v1` | vLLM server endpoint |
-| `VLLM_API_KEY` | `EMPTY` | API key (vLLM doesn't require one) |
-| `VLLM_MODEL` | `dark-side-of-the-code/Mistral-Small-24B-Instruct-2501-AWQ` | Model to use |
-| **Model Parameters** | | |
-| `TEMPERATURE` | `0.1` | Randomness: `0.0` = deterministic, `0.7` = balanced, `1.0`+ = creative |
-| `MAX_OUTPUT_TOKENS` | `4000` | Maximum tokens per response |
-| `STREAM` | `true` | Real-time streaming (`true`) or wait for complete response (`false`) |
-| **Context Management** | | |
-| `MAX_INPUT_TOKENS` | `12000` | Token budget for system prompt + conversation history |
-| `KEEP_RECENT_MESSAGES` | `6` | Messages preserved when auto-summarization triggers |
-| **Display** | | |
-| `CODE_THEME` | `monokai` | Pygments syntax highlighting theme for code blocks |
-| **Advanced** | | |
-| `TIKTOKEN_ENCODING` | `cl100k_base` | Token counting encoding (match to your model family) |
+| Setting                | Default                                                     | Description                                                            |
+| ---------------------- | ----------------------------------------------------------- | ---------------------------------------------------------------------- |
+| **Server**             |                                                             |                                                                        |
+| `VLLM_BASE_URL`        | `http://localhost:8000/v1`                                  | vLLM server endpoint                                                   |
+| `VLLM_API_KEY`         | `EMPTY`                                                     | API key (vLLM doesn't require one)                                     |
+| `VLLM_MODEL`           | `dark-side-of-the-code/Mistral-Small-24B-Instruct-2501-AWQ` | Model to use                                                           |
+| **Model Parameters**   |                                                             |                                                                        |
+| `TEMPERATURE`          | `0.1`                                                       | Randomness: `0.0` = deterministic, `0.7` = balanced, `1.0`+ = creative |
+| `MAX_OUTPUT_TOKENS`    | `4000`                                                      | Maximum tokens per response                                            |
+| `STREAM`               | `true`                                                      | Real-time streaming (`true`) or wait for complete response (`false`)   |
+| **Context Management** |                                                             |                                                                        |
+| `MAX_INPUT_TOKENS`     | `12000`                                                     | Token budget for system prompt + conversation history                  |
+| `KEEP_RECENT_MESSAGES` | `6`                                                         | Messages preserved when auto-summarization triggers                    |
+| **Display**            |                                                             |                                                                        |
+| `CODE_THEME`           | `monokai`                                                   | Pygments syntax highlighting theme for code blocks                     |
+| **Advanced**           |                                                             |                                                                        |
+| `TIKTOKEN_ENCODING`    | `cl100k_base`                                               | Token counting encoding (match to your model family)                   |
 
 **Popular code themes:** `monokai`, `dracula`, `github-dark`, `one-dark`, `solarized-dark`, `solarized-light`, `nord`, `gruvbox-dark`, `native`
 
 ### View Current Configuration
 
-```
+```text
 You: /config list
 
 Configuration:
@@ -180,7 +180,7 @@ Source users can also use a `.env` file in the project root. See [Configuration 
 
 Zorac tracks tokens to stay within your model's context window:
 
-```
+```text
 You: /tokens
 📊 Token usage:
    Current: ~3421 tokens
@@ -204,14 +204,14 @@ When the conversation exceeds `MAX_INPUT_TOKENS`, Zorac automatically summarizes
 
 Runs on **consumer gaming GPUs**:
 
-| GPU | VRAM | Model Size | Performance |
-|-----|------|------------|-------------|
-| RTX 4090 | 24GB | Up to 24B (AWQ) | 60-65 tok/s |
+| GPU         | VRAM | Model Size      | Performance |
+| ----------- | ---- | --------------- | ----------- |
+| RTX 4090    | 24GB | Up to 24B (AWQ) | 60-65 tok/s |
 | RTX 3090 Ti | 24GB | Up to 24B (AWQ) | 55-60 tok/s |
-| RTX 3090 | 24GB | Up to 24B (AWQ) | 55-60 tok/s |
-| RTX 4080 | 16GB | Up to 14B (AWQ) | 45-50 tok/s |
-| RTX 4070 Ti | 12GB | Up to 7B (AWQ) | 40-45 tok/s |
-| RTX 3080 | 10GB | Up to 7B (AWQ) | 35-40 tok/s |
+| RTX 3090    | 24GB | Up to 24B (AWQ) | 55-60 tok/s |
+| RTX 4080    | 16GB | Up to 14B (AWQ) | 45-50 tok/s |
+| RTX 4070 Ti | 12GB | Up to 7B (AWQ)  | 40-45 tok/s |
+| RTX 3080    | 10GB | Up to 7B (AWQ)  | 35-40 tok/s |
 
 See [Server Setup](https://zorac.lowgravitylab.com/SERVER_SETUP/) for optimization details.
 
@@ -240,48 +240,56 @@ You can use any vLLM-compatible model (Llama, Qwen, Phi, DeepSeek, etc.) by chan
 <summary><b>Can I run this without a GPU?</b></summary>
 
 No, this requires an NVIDIA GPU with at least 10GB VRAM. CPU-only inference is too slow for interactive chat.
+
 </details>
 
 <details>
 <summary><b>How does this compare to Ollama?</b></summary>
 
 Zorac uses vLLM for faster inference (60+ tok/s vs Ollama's 20-30 tok/s on the same hardware) and supports advanced features like tool calling for agentic workflows. Ollama is easier to set up but slower.
+
 </details>
 
 <details>
 <summary><b>Do I need to be online?</b></summary>
 
 Only for the initial model download (~14GB for Mistral-24B-AWQ). After that, everything runs completely offline.
+
 </details>
 
 <details>
 <summary><b>Is this legal? Can I use this commercially?</b></summary>
 
 Yes. Mistral-Small is Apache 2.0 licensed (free commercial use). vLLM is also Apache 2.0.
+
 </details>
 
 <details>
 <summary><b>What about AMD GPUs or Mac M-series?</b></summary>
 
 This is specifically for NVIDIA GPUs using CUDA. For AMD, you'd need ROCm support (experimental). For Mac M-series, check out MLX or llama.cpp instead.
+
 </details>
 
 <details>
 <summary><b>How much does it cost to run?</b></summary>
 
 Electricity for an RTX 4090 at ~300W is roughly $0.05-0.10 per hour. Far cheaper than API costs for heavy usage.
+
 </details>
 
 <details>
 <summary><b>How do I copy text from the chat?</b></summary>
 
 Zorac uses mouse reporting for scrolling, which can interfere with native text selection in some terminals. In **iTerm2**, hold **Option (⌥)** while clicking and dragging to select text, then copy with **Cmd+C** as usual. Most terminals support a similar modifier key — check your terminal's documentation for its equivalent.
+
 </details>
 
 <details>
 <summary><b>What other models can I run?</b></summary>
 
 Any model with vLLM support: Llama, Qwen, Phi, DeepSeek, etc. Just change the `VLLM_MODEL` setting. See [vLLM supported models](https://docs.vllm.ai/en/stable/models/supported_models/).
+
 </details>
 
 ## Documentation
