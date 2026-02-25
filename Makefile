@@ -94,7 +94,7 @@ dev-setup: install-dev pre-commit-install ## Complete development setup
 	@echo "  3. Run 'make run' to start the chat client"
 
 docs-serve: ## Serve documentation locally with live reload
-	uv run --extra docs mkdocs serve
+	uv run --extra docs mkdocs serve --watch-theme --livereload
 
 docs-build: ## Build documentation site
 	uv run --extra docs mkdocs build --strict

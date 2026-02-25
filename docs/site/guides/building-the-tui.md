@@ -10,12 +10,12 @@ A guide to building a terminal user interface with Textual — covering the widg
 
 When building a chat application, you have several UI options:
 
-| Approach | Pros | Cons |
-|----------|------|------|
-| **Web app** (Gradio, Streamlit) | Easy to build, browser-based | Requires a web server, heavier stack |
-| **Desktop app** (Electron, Qt) | Rich UI, native feel | Large bundle size, complex build process |
-| **CLI** (print/input) | Simple, universal | No formatting, no live updates |
-| **TUI** (Textual, curses) | Rich UI in the terminal, lightweight | Terminal compatibility quirks |
+| Approach                        | Pros                                 | Cons                                     |
+| ------------------------------- | ------------------------------------ | ---------------------------------------- |
+| **Web app** (Gradio, Streamlit) | Easy to build, browser-based         | Requires a web server, heavier stack     |
+| **Desktop app** (Electron, Qt)  | Rich UI, native feel                 | Large bundle size, complex build process |
+| **CLI** (print/input)           | Simple, universal                    | No formatting, no live updates           |
+| **TUI** (Textual, curses)       | Rich UI in the terminal, lightweight | Terminal compatibility quirks            |
 
 Zorac uses a TUI because it fits the project's philosophy: lightweight, runs anywhere there's a terminal, zero browser or desktop framework overhead. For a tool that's already running on the command line next to vLLM, staying in the terminal feels natural.
 
@@ -94,24 +94,24 @@ Zorac's stylesheet is defined on the `ZoracApp` class:
 
 ```css
 #chat-log {
-    padding: 0 1;
+  padding: 0 1;
 }
 #bottom-bar {
-    dock: bottom;
-    height: auto;
+  dock: bottom;
+  height: auto;
 }
 #user-input {
-    height: 3;
-    min-height: 3;
-    max-height: 7;
-    border: tall $accent-darken-3;
-    padding: 0 1;
+  height: 3;
+  min-height: 3;
+  max-height: 7;
+  border: tall $accent-darken-3;
+  padding: 0 1;
 }
 #stats-bar {
-    height: auto;
-    padding: 1 1;
-    background: #0f0f1a;
-    color: #888888;
+  height: auto;
+  padding: 1 1;
+  background: #0f0f1a;
+  color: #888888;
 }
 ```
 
@@ -145,7 +145,7 @@ Textual auto-routes messages to handlers named `on_<widget_class>_<message_name>
 
 ### Layout: Chat Log, Input, Stats Bar
 
-```
+```text
 ┌─────────────────────────────────────────────┐
 │                                             │
 │  VerticalScroll#chat-log                    │
@@ -161,7 +161,7 @@ Textual auto-routes messages to handlers named `on_<widget_class>_<message_name>
 │  [Type your message or /command          ]  │
 ├─────────────────────────────────────────────┤
 │  Static#stats-bar                           │
-│  Stats: 245 tokens in 3.8s (64.5 tok/s)    │
+│  Stats: 245 tokens in 3.8s (64.5 tok/s)     │
 └─────────────────────────────────────────────┘
 ```
 
@@ -237,11 +237,11 @@ class ZoracApp(CommandHandlersMixin, StreamingMixin, HistoryMixin, App):
     ...
 ```
 
-| Mixin | File | Responsibility |
-|-------|------|---------------|
-| `CommandHandlersMixin` | `handlers.py` | All `/command` handlers (`cmd_help`, `cmd_clear`, etc.) |
-| `StreamingMixin` | `streaming.py` | The `_stream_response()` worker method |
-| `HistoryMixin` | `history.py` | Command history load/save and Up/Down navigation |
+| Mixin                  | File           | Responsibility                                          |
+| ---------------------- | -------------- | ------------------------------------------------------- |
+| `CommandHandlersMixin` | `handlers.py`  | All `/command` handlers (`cmd_help`, `cmd_clear`, etc.) |
+| `StreamingMixin`       | `streaming.py` | The `_stream_response()` worker method                  |
+| `HistoryMixin`         | `history.py`   | Command history load/save and Up/Down navigation        |
 
 Each mixin declares type stubs for the attributes it expects from `ZoracApp` (like `self.client`, `self.messages`). This provides type safety while keeping the code modular. The actual attributes are defined in `ZoracApp.__init__()`.
 

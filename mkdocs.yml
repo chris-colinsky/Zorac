@@ -37,6 +37,10 @@ theme:
 extra_css:
   - stylesheets/extra.css
 
+watch:
+  - docs/
+  - mkdocs.yml
+
 markdown_extensions:
   - admonition
   - pymdownx.details
@@ -73,6 +77,7 @@ nav:
   - Walkthroughs:
       - What Happens on Enter: site/walkthroughs/what-happens-on-enter.md
       - Streaming Explained: site/walkthroughs/streaming-explained.md
+      - Quantizing the Model: site/walkthroughs/quantizing-the-model.md
   - Decisions:
       - Why Textual: site/decisions/why-textual.md
       - Why AWQ: site/decisions/why-awq.md

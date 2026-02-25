@@ -27,7 +27,7 @@ Edit `.env` with your settings:
 # Server Connection
 VLLM_BASE_URL=http://localhost:8000/v1  # Change to your vLLM server URL
 VLLM_API_KEY=EMPTY                       # vLLM doesn't require authentication
-VLLM_MODEL=stelterlab/Mistral-Small-24B-Instruct-2501-AWQ
+VLLM_MODEL=dark-side-of-the-code/Mistral-Small-24B-Instruct-2501-AWQ
 
 # Token Limits (optional - defaults shown)
 # MAX_INPUT_TOKENS=12000
@@ -67,51 +67,51 @@ VLLM_BASE_URL="http://192.168.1.100:8000/v1" uv run zorac
 
 ### Server Settings
 
-| Setting | Default | Description |
-|---------|---------|-------------|
-| `VLLM_BASE_URL` | `http://localhost:8000/v1` | vLLM server endpoint |
-| `VLLM_API_KEY` | `EMPTY` | API key (vLLM doesn't require one) |
-| `VLLM_MODEL` | `stelterlab/Mistral-Small-24B-Instruct-2501-AWQ` | Model name |
+| Setting         | Default                                                     | Description                        |
+| --------------- | ----------------------------------------------------------- | ---------------------------------- |
+| `VLLM_BASE_URL` | `http://localhost:8000/v1`                                  | vLLM server endpoint               |
+| `VLLM_API_KEY`  | `EMPTY`                                                     | API key (vLLM doesn't require one) |
+| `VLLM_MODEL`    | `dark-side-of-the-code/Mistral-Small-24B-Instruct-2501-AWQ` | Model name                         |
 
 ### Token Limits
 
-| Setting | Default | Description |
-|---------|---------|-------------|
-| `MAX_INPUT_TOKENS` | `12000` | Maximum tokens for input (system + history) |
-| `MAX_OUTPUT_TOKENS` | `4000` | Maximum tokens for model responses |
-| `KEEP_RECENT_MESSAGES` | `6` | Messages to preserve during auto-summarization |
+| Setting                | Default | Description                                    |
+| ---------------------- | ------- | ---------------------------------------------- |
+| `MAX_INPUT_TOKENS`     | `12000` | Maximum tokens for input (system + history)    |
+| `MAX_OUTPUT_TOKENS`    | `4000`  | Maximum tokens for model responses             |
+| `KEEP_RECENT_MESSAGES` | `6`     | Messages to preserve during auto-summarization |
 
 ### Model Parameters
 
-| Setting | Default | Range | Description |
-|---------|---------|-------|-------------|
-| `TEMPERATURE` | `0.1` | `0.0-2.0` | Lower = more deterministic, Higher = more creative |
-| `STREAM` | `true` | `true/false` | Enable real-time streaming with live markdown rendering |
+| Setting       | Default | Range        | Description                                             |
+| ------------- | ------- | ------------ | ------------------------------------------------------- |
+| `TEMPERATURE` | `0.1`   | `0.0-2.0`    | Lower = more deterministic, Higher = more creative      |
+| `STREAM`      | `true`  | `true/false` | Enable real-time streaming with live markdown rendering |
 
 ### Display
 
-| Setting | Default | Description |
-|---------|---------|-------------|
+| Setting      | Default   | Description                                       |
+| ------------ | --------- | ------------------------------------------------- |
 | `CODE_THEME` | `monokai` | Pygments theme for syntax-highlighted code blocks |
 
 Common themes: `monokai`, `dracula`, `github-dark`, `one-dark`, `solarized-dark`, `solarized-light`, `nord`, `gruvbox-dark`, `native`. Any Pygments style name is supported.
 
 ### Token Counting
 
-| Setting | Default | Description |
-|---------|---------|-------------|
+| Setting             | Default       | Description                                                      |
+| ------------------- | ------------- | ---------------------------------------------------------------- |
 | `TIKTOKEN_ENCODING` | `cl100k_base` | Tiktoken encoding used for token counting and context management |
 
 Zorac uses [tiktoken](https://github.com/openai/tiktoken) to count tokens for context window management, auto-summarization triggers, and performance metrics. Different model families use different tokenizers, so accurate token counting requires matching the encoding to your model.
 
 **Available encodings:**
 
-| Encoding | Models | Use When |
-|----------|--------|----------|
-| `cl100k_base` | GPT-4, GPT-3.5, Mistral, most current models | Default — correct for the bundled Mistral model and most vLLM-served models |
-| `o200k_base` | GPT-4o, GPT-4o-mini | You're proxying through an OpenAI-compatible endpoint serving GPT-4o family models |
-| `p50k_base` | Codex, text-davinci-002/003 | You're running older code-focused models |
-| `r50k_base` (gpt2) | GPT-2, older GPT-3 | You're running legacy models |
+| Encoding           | Models                                       | Use When                                                                           |
+| ------------------ | -------------------------------------------- | ---------------------------------------------------------------------------------- |
+| `cl100k_base`      | GPT-4, GPT-3.5, Mistral, most current models | Default — correct for the bundled Mistral model and most vLLM-served models        |
+| `o200k_base`       | GPT-4o, GPT-4o-mini                          | You're proxying through an OpenAI-compatible endpoint serving GPT-4o family models |
+| `p50k_base`        | Codex, text-davinci-002/003                  | You're running older code-focused models                                           |
+| `r50k_base` (gpt2) | GPT-2, older GPT-3                           | You're running legacy models                                                       |
 
 Most users should leave this at the default. Change it only if you switch to a model family with a different tokenizer — using the wrong encoding won't break anything, but token counts will be slightly inaccurate, which can cause auto-summarization to trigger too early or too late.
 
@@ -119,12 +119,12 @@ Most users should leave this at the default. Change it only if you switch to a m
 
 All file locations are configurable via environment variables:
 
-| Setting | Default | Description |
-|---------|---------|-------------|
-| `ZORAC_DIR` | `~/.zorac` | Main configuration directory |
-| `ZORAC_SESSION_FILE` | `~/.zorac/session.json` | Session storage location |
-| `ZORAC_HISTORY_FILE` | `~/.zorac/history` | Command history location |
-| `ZORAC_CONFIG_FILE` | `~/.zorac/config.json` | Configuration file location |
+| Setting              | Default                 | Description                  |
+| -------------------- | ----------------------- | ---------------------------- |
+| `ZORAC_DIR`          | `~/.zorac`              | Main configuration directory |
+| `ZORAC_SESSION_FILE` | `~/.zorac/session.json` | Session storage location     |
+| `ZORAC_HISTORY_FILE` | `~/.zorac/history`      | Command history location     |
+| `ZORAC_CONFIG_FILE`  | `~/.zorac/config.json`  | Configuration file location  |
 
 ## Runtime Configuration
 
@@ -227,6 +227,7 @@ Error: Connection refused
 ```
 
 **Check:**
+
 1. Verify server is running: `curl http://localhost:8000/v1/models`
 2. Check `VLLM_BASE_URL` is correct
 3. Ensure firewall allows connections
@@ -234,6 +235,7 @@ Error: Connection refused
 ### Configuration Not Applied
 
 **Remember the priority order:**
+
 - Environment variables override config file
 - Config file overrides defaults
 - `/config set` updates config file only

@@ -2,7 +2,7 @@
 
 Quantization is the technique that makes it possible to run a 24-billion parameter model on a single RTX 4090. Without it, Mistral-Small-24B would need ~48GB of VRAM — double what even the highest-end consumer GPU provides.
 
-This page explains what quantization is, compares the major formats, and explains why Zorac defaults to AWQ with Marlin kernels.
+This page explains what quantization is, compares the major formats, and explains why Zorac defaults to AWQ quantization served via the `compressed-tensors` format.
 
 ---
 
@@ -49,9 +49,11 @@ AWQ identifies the most important weights by looking at **activation patterns** 
 **Strengths:**
 
 - Excellent quality preservation — nearly indistinguishable from FP16 on benchmarks
-- Fast inference with GPU-optimized kernels (especially Marlin)
+- Fast inference with GPU-optimized kernels (Marlin on RTX 30/40-series)
 - Well-supported by vLLM and other inference servers
 - Smaller file sizes than GPTQ for equivalent quality
+
+**Tooling:** Zorac uses [llmcompressor](https://github.com/vllm-project/llm-compressor) (the vLLM project's official tool) rather than autoawq. llmcompressor outputs the `compressed-tensors` format that vLLM loads natively — no extra packages at serve time, automatic kernel selection, and a sequential pipeline that only needs one GPU for quantization regardless of model size. See the [Why AWQ](../decisions/why-awq.md) decision record for the full comparison.
 
 **Best for:** GPU inference with vLLM, TGI, or similar servers.
 
@@ -107,29 +109,29 @@ GGUF is the native format for [llama.cpp](https://github.com/ggerganov/llama.cpp
 
 ---
 
-## Why Zorac Defaults to AWQ + Marlin
+## Why Zorac Defaults to AWQ + compressed-tensors
 
-Zorac uses `stelterlab/Mistral-Small-24B-Instruct-2501-AWQ` as its default model. Here's why:
+Zorac uses `dark-side-of-the-code/Mistral-Small-24B-Instruct-2501-AWQ` as its default model. Here's why:
 
-### 1. Performance: Marlin Kernels
+### 1. Performance: Marlin Kernels via compressed-tensors
 
-The `awq_marlin` quantization backend in vLLM uses **Marlin kernels** — GPU kernels specifically optimized for 4-bit matrix multiplication on NVIDIA Ada Lovelace (RTX 40-series) and Ampere (RTX 30-series) architectures.
+The model is quantized with [llmcompressor](https://github.com/vllm-project/llm-compressor) — the vLLM project's official quantization tool — which outputs the `compressed-tensors` format. When vLLM loads a `compressed-tensors` model, it automatically selects the optimal kernel for your GPU. On RTX 30/40-series GPUs, this means **Marlin kernels** — CUDA kernels specifically optimized for 4-bit matrix multiplication.
 
 The performance difference is dramatic:
 
 ```
-Standard AWQ kernel:    ~6 tok/s   (unusable for interactive chat)
-AWQ + Marlin kernel:   ~60-65 tok/s (smooth, responsive conversation)
+Generic AWQ kernel:     ~6 tok/s   (unusable for interactive chat)
+Marlin kernel (auto):  ~60-65 tok/s (smooth, responsive conversation)
 ```
 
-This 10x speedup comes from Marlin's optimized memory access patterns and CUDA kernel design. It's the single most important configuration flag in the vLLM setup:
+This 10x speedup comes from Marlin's optimized memory access patterns and CUDA kernel design. Using `compressed-tensors` ensures vLLM picks the right kernel automatically:
 
 ```bash
-vllm serve "model-name" --quantization awq_marlin
+vllm serve "model-name" --quantization compressed-tensors
 ```
 
-!!! warning "Don't forget the `_marlin` suffix"
-    Using `--quantization awq` (without `_marlin`) falls back to the generic AWQ kernel, which is dramatically slower. Always use `awq_marlin` on RTX 30/40-series GPUs.
+!!! tip "Automatic kernel selection"
+    Unlike the older `awq_marlin` flag, `compressed-tensors` lets vLLM auto-detect the optimal kernel from the model's metadata. No manual kernel selection needed.
 
 ### 2. Quality: Activation-Aware Preservation
 
@@ -137,17 +139,31 @@ AWQ's activation-aware approach preserves model quality better than naive quanti
 
 ### 3. Memory Budget
 
-At 4-bit precision, the model occupies ~14GB of the RTX 4090's 24GB VRAM:
+At 4-bit precision, the model occupies ~14GB of the RTX 4090's 24GB VRAM. The remaining budget depends on whether the GPU also drives a monitor:
+
+**Headless inference GPU** (monitor on a different GPU — Zorac's setup):
 
 ```
 Model weights:     ~14 GB
-KV cache:          ~8 GB  (with gpu-memory-utilization=0.85)
+KV cache (FP8):    ~3.6 GB  (32k context with --kv-cache-dtype fp8)
 CUDA overhead:     ~2 GB
+Display overhead:   0 GB
 ─────────────────────────
-Total:             ~24 GB
+Total:             ~19.6 GB / 22.1 GB available (0.92 util)
 ```
 
-This leaves enough KV cache memory for a 16,384-token context window — sufficient for extended conversations with Zorac's automatic summarization keeping things within budget.
+**Single GPU with display:**
+
+```
+Model weights:     ~14 GB
+KV cache (FP8):    ~1.8 GB  (16k context with --kv-cache-dtype fp8)
+CUDA overhead:     ~2 GB
+Display overhead:  ~1-1.5 GB
+─────────────────────────
+Total:             ~19.3 GB / 20.4 GB available (0.85 util)
+```
+
+With a headless GPU and FP8 KV cache, the full 32,768-token native context window fits comfortably. With a single GPU driving display, 16,384 tokens is the safe maximum. Either way, Zorac's automatic summarization keeps conversations within budget.
 
 ---
 
@@ -159,9 +175,9 @@ Use this decision framework when selecting a quantization format for your own pr
 graph TD
     A[What hardware?] -->|NVIDIA GPU| B[Need max throughput?]
     A -->|CPU / Mac M-series| C[Use GGUF]
-    B -->|Yes| D[Use AWQ + Marlin]
+    B -->|Yes| D[Use AWQ + compressed-tensors]
     B -->|Compatibility concerns| E[Use GPTQ]
-    D --> F[vLLM with --quantization awq_marlin]
+    D --> F[vLLM with --quantization compressed-tensors]
     E --> G[vLLM or TGI with GPTQ model]
     C --> H[llama.cpp or Ollama]
 ```
@@ -192,4 +208,4 @@ graph TD
 - [AWQ Paper: Activation-aware Weight Quantization](https://arxiv.org/abs/2306.00978) — The original research paper
 - [Marlin Kernel](https://github.com/IST-DASLab/marlin) — The GPU kernel that makes AWQ fast
 - [vLLM Quantization Docs](https://docs.vllm.ai/en/stable/features/quantization/index.html) — vLLM's quantization support
-- [Server Setup Guide](../../SERVER_SETUP.md) — How to configure vLLM with AWQ Marlin for Zorac
+- [Server Setup Guide](../../SERVER_SETUP.md) — How to configure vLLM with compressed-tensors for Zorac

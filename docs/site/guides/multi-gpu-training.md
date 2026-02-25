@@ -288,7 +288,7 @@ merged.save_pretrained("./merged-model")
 Then serve the merged model with vLLM:
 
 ```bash
-vllm serve "./merged-model" --quantization awq_marlin ...
+vllm serve "./merged-model" --quantization compressed-tensors ...
 ```
 
 **Option 2: Update the Zorac model configuration**

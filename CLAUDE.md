@@ -10,7 +10,7 @@ Interactive CLI chat client for a vLLM inference server running on local homelab
 
 **Target Use Cases:** Privacy-focused development, AI experimentation without API costs, offline AI workflows, coding assistants, agentic systems (LangChain/LangGraph)
 
-**Model**: `stelterlab/Mistral-Small-24B-Instruct-2501-AWQ` (24B parameters, 4-bit AWQ quantization, runs at 60-65 tokens/sec on RTX 4090)
+**Model**: `dark-side-of-the-code/Mistral-Small-24B-Instruct-2501-AWQ` (24B parameters, 4-bit AWQ quantization, runs at 60-65 tokens/sec on RTX 4090)
 
 **SEO Focus:** Documentation is optimized for discoverability by developers searching for "self-hosted LLM", "local AI", "ChatGPT alternative", "vLLM tutorial", and related terms.
 
@@ -218,7 +218,7 @@ Configuration is managed through a `.env` file in the project root. Copy `.env.e
 ### Server Configuration (via .env file or `~/.zorac/config.json`)
 - `VLLM_BASE_URL`: Default `http://localhost:8000/v1` (vLLM server endpoint)
 - `VLLM_API_KEY`: Default `"EMPTY"` (vLLM doesn't require authentication)
-- `VLLM_MODEL`: Default `stelterlab/Mistral-Small-24B-Instruct-2501-AWQ`
+- `VLLM_MODEL`: Default `dark-side-of-the-code/Mistral-Small-24B-Instruct-2501-AWQ`
 - `ZORAC_DIR`: Optional - Custom zorac directory (defaults to `~/.zorac`)
 - `ZORAC_SESSION_FILE`: Optional - Custom session file location (defaults to `~/.zorac/session.json`)
 - `ZORAC_HISTORY_FILE`: Optional - Custom history file location (defaults to `~/.zorac/history`)
