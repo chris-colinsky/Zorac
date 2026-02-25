@@ -5,7 +5,7 @@ This walkthrough traces the complete quantization pipeline that produces Zorac's
 The full script lives in [`quant-lab/quantize_mistral.py`](https://github.com/chris-colinsky/Zorac/blob/main/quant-lab/quantize_mistral.py) — 72 lines of Python that do the entire job.
 
 !!! info "Related Reading"
-    For background on what quantization is and how AWQ compares to other formats, see [Quantization Concepts](../concepts/quantization.md). For the decision rationale behind choosing AWQ, see [Why AWQ](../decisions/why-awq.md). This page focuses on the practical process of producing a quantized model yourself.
+For background on what quantization is and how AWQ compares to other formats, see [Quantization Concepts](../concepts/quantization.md). For the decision rationale behind choosing AWQ, see [Why AWQ](../decisions/why-awq.md). This page focuses on the practical process of producing a quantized model yourself.
 
 ---
 
@@ -24,14 +24,14 @@ Pre-quantized AWQ models exist on Hugging Face, but quantizing your own gives yo
 
 The script uses [llmcompressor](https://github.com/vllm-project/llm-compressor) — the vLLM project's official quantization library. This is a deliberate choice over the more widely-known `autoawq` package:
 
-| | llmcompressor | autoawq |
-|---|---|---|
-| **Maintained by** | vLLM project | Community |
-| **Output format** | `compressed-tensors` (vLLM native) | AutoAWQ format |
-| **vLLM compatibility** | First-class — no extra packages at serve time | Requires `autoawq` installed alongside vLLM |
-| **AWQ implementation** | Full AWQ with activation-aware scaling | Full AWQ |
-| **Sequential pipeline** | Built-in — only needs 1 GPU for quantization | Requires model to fit in GPU memory |
-| **Recipe system** | YAML-based, composable | Python config objects |
+|                         | llmcompressor                                 | autoawq                                     |
+| ----------------------- | --------------------------------------------- | ------------------------------------------- |
+| **Maintained by**       | vLLM project                                  | Community                                   |
+| **Output format**       | `compressed-tensors` (vLLM native)            | AutoAWQ format                              |
+| **vLLM compatibility**  | First-class — no extra packages at serve time | Requires `autoawq` installed alongside vLLM |
+| **AWQ implementation**  | Full AWQ with activation-aware scaling        | Full AWQ                                    |
+| **Sequential pipeline** | Built-in — only needs 1 GPU for quantization  | Requires model to fit in GPU memory         |
+| **Recipe system**       | YAML-based, composable                        | Python config objects                       |
 
 The key advantage is the output format. llmcompressor writes `compressed-tensors` files that vLLM understands natively — you just point `vllm serve` at the directory and it works. No extra dependencies at inference time.
 
@@ -41,12 +41,12 @@ The key advantage is the output format. llmcompressor writes `compressed-tensors
 
 Quantization has very different hardware requirements than inference:
 
-| Resource | Quantization | Inference |
-|----------|-------------|-----------|
-| **GPU** | 1x any NVIDIA GPU (even 10GB) | 1x 24GB GPU (for 24B model) |
-| **System RAM** | 48GB+ (holds full FP16 model) | 16GB sufficient |
-| **Disk** | ~60GB (source + output) | ~14GB (quantized model only) |
-| **Time** | 1-3 hours | N/A |
+| Resource       | Quantization                  | Inference                    |
+| -------------- | ----------------------------- | ---------------------------- |
+| **GPU**        | 1x any NVIDIA GPU (even 10GB) | 1x 24GB GPU (for 24B model)  |
+| **System RAM** | 48GB+ (holds full FP16 model) | 16GB sufficient              |
+| **Disk**       | ~60GB (source + output)       | ~14GB (quantized model only) |
+| **Time**       | 1-3 hours                     | N/A                          |
 
 The sequential pipeline loads the full FP16 model into CPU RAM, then moves one transformer layer at a time onto the GPU for calibration. This means your system RAM must be large enough to hold the entire unquantized model (~48GB for a 24B model), but your GPU only needs enough VRAM for a single layer (a few hundred MB).
 
@@ -120,7 +120,7 @@ This is one of the most important lines in the script, and the parameter choices
 **`torch_dtype="auto"`** — Uses the dtype specified in the model's config (BF16 for Mistral Small). Specifying this explicitly avoids the default FP32, which would double memory usage to ~96GB for no benefit.
 
 !!! warning "Why not `device_map='auto'`?"
-    It's tempting to load the model across GPUs for speed, but AWQ calibration is inherently sequential — layer N+1 depends on layer N's output. There's no parallel work to be done across GPUs. Loading to CPU and letting the sequential pipeline handle GPU placement is the correct, tested path.
+It's tempting to load the model across GPUs for speed, but AWQ calibration is inherently sequential — layer N+1 depends on layer N's output. There's no parallel work to be done across GPUs. Loading to CPU and letting the sequential pipeline handle GPU placement is the correct, tested path.
 
 ### Preparing the Calibration Dataset
 
@@ -163,11 +163,11 @@ This YAML recipe tells llmcompressor exactly how to quantize. Every field matter
 
 **`scheme: W4A16_ASYM`** — Three pieces of information packed into one string:
 
-| Component | Meaning |
-|-----------|---------|
-| **W4** | Weights quantized to 4-bit integers |
-| **A16** | Activations stay at 16-bit (FP16/BF16) during inference |
-| **ASYM** | Asymmetric quantization — the zero-point is not forced to zero |
+| Component | Meaning                                                        |
+| --------- | -------------------------------------------------------------- |
+| **W4**    | Weights quantized to 4-bit integers                            |
+| **A16**   | Activations stay at 16-bit (FP16/BF16) during inference        |
+| **ASYM**  | Asymmetric quantization — the zero-point is not forced to zero |
 
 Why asymmetric? Neural network weight distributions are often skewed — they don't center neatly on zero. Asymmetric quantization allows the quantization range to shift to cover the actual distribution, wasting fewer of the precious 16 integer values (0-15) on ranges where no weights exist. The trade-off is a slightly more complex dequantization step (one extra addition per group), but the quality improvement is worth it.
 
@@ -230,7 +230,7 @@ tokenizer.save_pretrained(quant_path)
 
 The output directory contains everything needed to serve the model:
 
-```
+```text
 Mistral-Small-24B-Instruct-2501-AWQ/
 ├── config.json                        # Model architecture config
 ├── generation_config.json             # Default generation parameters
@@ -310,14 +310,14 @@ uv run python quantize_mistral.py
 
 Common modifications:
 
-| Goal | Change |
-|------|--------|
-| Different model | Set `model_id` to any HF model |
-| Different output path | Set `quant_path` |
-| Higher quality | Increase `NUM_CALIBRATION_SAMPLES` to 512 |
-| Use second GPU | Add `device="cuda:1"` to `oneshot()` |
-| Symmetric quantization | Change scheme to `W4A16` (drops `_ASYM`) |
-| 8-bit instead of 4-bit | Change scheme to `W8A16_ASYM` |
+| Goal                   | Change                                    |
+| ---------------------- | ----------------------------------------- |
+| Different model        | Set `model_id` to any HF model            |
+| Different output path  | Set `quant_path`                          |
+| Higher quality         | Increase `NUM_CALIBRATION_SAMPLES` to 512 |
+| Use second GPU         | Add `device="cuda:1"` to `oneshot()`      |
+| Symmetric quantization | Change scheme to `W4A16` (drops `_ASYM`)  |
+| 8-bit instead of 4-bit | Change scheme to `W8A16_ASYM`             |
 
 ---
 

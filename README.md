@@ -1,5 +1,5 @@
 <p align="left">
-  <img src="https://raw.githubusercontent.com/chris-colinsky/Zorac/refs/heads/main/img/zorac_avatar.jpg" alt="ZOrac Logo" width="200">
+  <img src="https://raw.githubusercontent.com/chris-colinsky/Zorac/main/img/zorac_avatar.jpg" alt="ZOrac Logo" width="200">
 </p>
 
 [![PyPI](https://img.shields.io/pypi/v/zorac.svg)](https://pypi.org/project/zorac/)
@@ -70,7 +70,7 @@ That's it. Your conversation is automatically saved and restored between session
 
 *Interactive chat with real-time streaming responses, markdown rendering, and performance metrics*
 
-![Zorac Chat Interface](https://raw.githubusercontent.com/chris-colinsky/Zorac/refs/heads/main/screenshots/zorac-screenshot-1.png)
+![Zorac Chat Interface](https://raw.githubusercontent.com/chris-colinsky/Zorac/main/screenshots/zorac-screenshot-1.png)
 
 ## Features
 
