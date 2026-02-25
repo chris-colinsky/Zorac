@@ -63,9 +63,10 @@ A typical startup command:
 
 ```bash
 vllm serve "dark-side-of-the-code/Mistral-Small-24B-Instruct-2501-AWQ" \
-    --quantization awq_marlin \
+    --quantization compressed-tensors \
     --max-model-len 16384 \
     --gpu-memory-utilization 0.85 \
+    --kv-cache-dtype fp8 \
     --host 0.0.0.0 \
     --port 8000
 ```
@@ -94,13 +95,14 @@ vLLM supports multiple quantization formats:
 
 | Backend | Flag | Speed (RTX 4090) | Notes |
 |---------|------|-------------------|-------|
-| AWQ + Marlin | `--quantization awq_marlin` | 60-65 tok/s | Recommended for RTX 30/40-series |
+| compressed-tensors (AWQ) | `--quantization compressed-tensors` | 60-65 tok/s | Recommended — native vLLM format, auto-selects Marlin kernels |
+| AWQ + Marlin | `--quantization awq_marlin` | 60-65 tok/s | For autoawq-quantized models |
 | AWQ (generic) | `--quantization awq` | ~6 tok/s | Much slower, avoid on modern GPUs |
 | GPTQ | `--quantization gptq` | 45-55 tok/s | Good alternative when AWQ unavailable |
 | GGUF | (auto-detected) | ~6 tok/s | Not optimized for vLLM, use llama.cpp instead |
 
-!!! warning "The Marlin Difference"
-    The difference between `awq` and `awq_marlin` is dramatic — 10x speed. Always use `awq_marlin` on NVIDIA RTX 30/40-series GPUs. See the [Why AWQ](../decisions/why-awq.md) decision record for the full analysis.
+!!! tip "Why compressed-tensors over awq_marlin?"
+    Zorac's model is quantized with [llmcompressor](https://github.com/vllm-project/llm-compressor) (maintained by the vLLM project) rather than autoawq. The key advantages: no extra packages needed at serve time (`autoawq` must be installed alongside vLLM), automatic kernel selection (no need to remember the `_marlin` suffix), and a sequential quantization pipeline that works on any GPU regardless of model size. Models quantized with autoawq still work — use `--quantization awq_marlin` for those. See the [Why AWQ](../decisions/why-awq.md) decision record for the full comparison.
 
 ---
 
@@ -158,7 +160,7 @@ vLLM supports multiple quantization formats:
 
 **Limitations:**
 
-- NVIDIA GPU performance much lower than vLLM with AWQ Marlin
+- NVIDIA GPU performance much lower than vLLM with optimized kernels
 - More complex configuration for GPU offloading
 - GGUF model format required (not all models are available)
 - Server mode is less polished than vLLM's API
@@ -169,7 +171,7 @@ vLLM supports multiple quantization formats:
 
 ```mermaid
 graph TD
-    A[What's your hardware?] -->|NVIDIA RTX 30/40/50| B[vLLM + AWQ Marlin]
+    A[What's your hardware?] -->|NVIDIA RTX 30/40/50| B[vLLM + compressed-tensors]
     A -->|Mac with Apple Silicon| C[Ollama or llama.cpp]
     A -->|CPU only| D[llama.cpp]
     A -->|Multi-GPU cluster| E[vLLM or TGI]
@@ -187,36 +189,36 @@ For Zorac's use case — interactive chat on an NVIDIA RTX 4090 — vLLM with AW
 
 ### Key Flags Explained
 
-Here are the most important vLLM flags for a Zorac deployment:
+Here are the most important vLLM flags for a Zorac deployment. Values depend on whether your inference GPU also drives a monitor:
 
 ```bash
 vllm serve "dark-side-of-the-code/Mistral-Small-24B-Instruct-2501-AWQ" \
-    --quantization awq_marlin \       # 10x faster than generic AWQ
-    --max-model-len 16384 \           # 16k context window
-    --gpu-memory-utilization 0.85 \   # Leave 15% VRAM headroom
-    --max-num-seqs 32 \               # Prevent OOM from pre-allocation
-    --host 0.0.0.0 \                  # Listen on all interfaces
-    --port 8000                       # Default port
+    --quantization compressed-tensors \  # Native vLLM format, auto-selects Marlin
+    --max-model-len 32768 \              # 32k context (headless) or 16384 (with display)
+    --gpu-memory-utilization 0.92 \      # Headless: 0.92, with display: 0.85
+    --max-num-seqs 32 \                  # Prevent OOM from pre-allocation
+    --kv-cache-dtype fp8 \               # Halve KV cache memory usage
+    --host 0.0.0.0 \                     # Listen on all interfaces
+    --port 8000                          # Default port
 ```
 
-| Flag | Purpose | Zorac Default |
-|------|---------|---------------|
-| `--quantization` | Quantization backend | `awq_marlin` |
-| `--max-model-len` | Maximum context length in tokens | `16384` |
-| `--gpu-memory-utilization` | Fraction of VRAM to use | `0.85` |
-| `--max-num-seqs` | Max concurrent request slots | `32` |
-| `--host` | Network interface to bind | `0.0.0.0` |
-| `--port` | HTTP port | `8000` |
+| Flag | Purpose | Headless GPU | With Display |
+|------|---------|-------------|--------------|
+| `--quantization` | Quantization backend | `compressed-tensors` | `compressed-tensors` |
+| `--max-model-len` | Maximum context length | `32768` (full native) | `16384` |
+| `--gpu-memory-utilization` | Fraction of VRAM to use | `0.92` | `0.85` |
+| `--kv-cache-dtype` | KV cache precision | `fp8` | `fp8` |
+| `--max-num-seqs` | Max concurrent request slots | `32` | `32` |
 
 ### Performance Tuning
 
-**GPU memory utilization:** The `--gpu-memory-utilization` flag controls what fraction of VRAM vLLM can use. On a dedicated inference server, `0.90` is safe. If you're also running a desktop environment, `0.85` prevents display driver conflicts. Setting this to `0.95` often causes initialization crashes.
+**GPU memory utilization:** The `--gpu-memory-utilization` flag controls what fraction of VRAM vLLM can use. If your inference GPU is headless (monitor plugged into a different GPU), `0.92` is safe — there's no display overhead. If your GPU also drives a monitor, the desktop environment consumes 500MB–1.5GB of VRAM, so `0.85` is the safe maximum. Setting this too high on a GPU with display duties causes initialization crashes.
 
-**Max model length:** Longer context windows use more VRAM for the KV cache. For Mistral-Small-24B on RTX 4090:
+**Max model length:** Longer context windows use more VRAM for the KV cache. With `--kv-cache-dtype fp8`, KV cache memory is roughly halved compared to FP16, making larger contexts practical:
 
-- `16384` — Comfortable fit with room for the model + KV cache
-- `32768` — Possible but risks OOM under load
-- `8192` — Leaves maximum VRAM for concurrent requests
+- `32768` — Full native context. Fits comfortably on a headless 24GB GPU with FP8 KV cache
+- `16384` — Recommended for single GPU with display
+- `8192` — Conservative, leaves maximum VRAM for concurrent requests
 
 **Max num seqs:** vLLM's V1 engine pre-allocates memory for concurrent request slots. The default (256) can cause OOM on 24GB cards. Setting this to `32` is sufficient for personal use and prevents startup crashes.
 

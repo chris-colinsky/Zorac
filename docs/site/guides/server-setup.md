@@ -121,14 +121,28 @@ python -c "import vllm; print(vllm.__version__)"
 
 ### The vLLM Serve Command
 
-The simplest way to start vLLM:
+The simplest way to start vLLM on a **single GPU** (with display attached):
 
 ```bash
 vllm serve "dark-side-of-the-code/Mistral-Small-24B-Instruct-2501-AWQ" \
-    --quantization awq_marlin \
+    --quantization compressed-tensors \
     --max-model-len 16384 \
     --gpu-memory-utilization 0.85 \
     --max-num-seqs 32 \
+    --kv-cache-dtype fp8 \
+    --host 0.0.0.0 \
+    --port 8000
+```
+
+If your inference GPU is **headless** (monitor plugged into a different GPU), you can push higher:
+
+```bash
+vllm serve "dark-side-of-the-code/Mistral-Small-24B-Instruct-2501-AWQ" \
+    --quantization compressed-tensors \
+    --max-model-len 32768 \
+    --gpu-memory-utilization 0.92 \
+    --max-num-seqs 32 \
+    --kv-cache-dtype fp8 \
     --host 0.0.0.0 \
     --port 8000
 ```
@@ -137,17 +151,24 @@ The first run will download the model from Hugging Face (~14GB). Subsequent star
 
 ### Key Flags Explained
 
-| Flag | Purpose | Why This Value |
-|------|---------|----------------|
-| `--quantization awq_marlin` | Use Marlin-optimized AWQ kernels | 10x faster than generic AWQ on RTX 30/40 series |
-| `--max-model-len 16384` | Maximum context length | 16k tokens balances context size vs VRAM usage |
-| `--gpu-memory-utilization 0.85` | VRAM fraction to use | Leaves 15% headroom for OS/display driver |
-| `--max-num-seqs 32` | Max concurrent request slots | Prevents OOM from vLLM's memory pre-allocation |
-| `--host 0.0.0.0` | Listen on all network interfaces | Required for remote access from other machines |
-| `--port 8000` | HTTP port | vLLM's default, matches Zorac's default URL |
+| Flag | Purpose | Single GPU (with display) | Headless GPU (no display) |
+|------|---------|---------------------------|---------------------------|
+| `--quantization compressed-tensors` | Native vLLM format (llmcompressor) | Same | Same |
+| `--kv-cache-dtype fp8` | Halve KV cache memory usage | Same | Same |
+| `--max-model-len` | Maximum context length | `16384` (16k) | `32768` (32k — full native) |
+| `--gpu-memory-utilization` | VRAM fraction to use | `0.85` (leaves room for display) | `0.92` (no display overhead) |
+| `--max-num-seqs 32` | Max concurrent request slots | Same | Same |
+| `--host 0.0.0.0` | Listen on all interfaces | Same | Same |
+| `--port 8000` | HTTP port | Same | Same |
 
-!!! warning "Don't Forget `awq_marlin`"
-    Using `--quantization awq` (without `_marlin`) falls back to a generic kernel that's ~10x slower. This is the single most impactful configuration flag.
+!!! info "Why the difference?"
+    Ubuntu's desktop environment, web browsers, window compositing, and display output consume 500MB–1.5GB of VRAM on the GPU driving the monitor. If your inference GPU also drives the display, you must reserve that headroom (`0.85`). If you have a second GPU handling display duties, the inference GPU has zero display overhead — you can safely use `0.92` and unlock the full 32k context window.
+
+!!! tip "Ubuntu Server: Max out your single GPU"
+    Running Ubuntu Server or any headless Linux distribution (no desktop environment, no display manager)? Your single GPU has zero display overhead — no second GPU needed. Use the headless settings (`0.92` / `32768`) to unlock Mistral-Small-24B's full native 32k context window on a single card. This is the ideal setup for a dedicated inference server.
+
+!!! tip "Why `compressed-tensors` instead of `awq_marlin`?"
+    Zorac's model is quantized with [llmcompressor](https://github.com/vllm-project/llm-compressor) (the vLLM project's official quantization tool) rather than autoawq. The `compressed-tensors` output format is native to vLLM — no extra packages needed at serve time, and vLLM automatically selects the optimal kernel (Marlin on RTX 30/40-series) from the model's metadata. If you're using a model quantized with autoawq instead, use `--quantization awq_marlin`. See the [Why AWQ](../decisions/why-awq.md) decision record for the full rationale.
 
 ### Creating a Systemd Service
 
@@ -170,14 +191,18 @@ Environment="CUDA_DEVICE_ORDER=PCI_BUS_ID"
 Environment="CUDA_VISIBLE_DEVICES=0"
 Environment="PYTHONUNBUFFERED=1"
 
+# For headless inference GPU (monitor on a different GPU):
 ExecStart=/home/your-username/vllm-serve/venv/bin/vllm serve \
     "dark-side-of-the-code/Mistral-Small-24B-Instruct-2501-AWQ" \
-    --quantization awq_marlin \
-    --max-model-len 16384 \
-    --gpu-memory-utilization 0.85 \
+    --quantization compressed-tensors \
+    --dtype auto \
+    --max-model-len 32768 \
+    --gpu-memory-utilization 0.92 \
     --max-num-seqs 32 \
+    --kv-cache-dtype fp8 \
     --host 0.0.0.0 \
     --port 8000
+# Single GPU with display: use --max-model-len 16384 --gpu-memory-utilization 0.85
 
 Restart=always
 RestartSec=5
@@ -212,27 +237,37 @@ Key environment variables in the systemd service:
 
 ### GPU Memory Utilization
 
-The `--gpu-memory-utilization` flag controls what fraction of total VRAM vLLM can use:
+The `--gpu-memory-utilization` flag controls what fraction of total VRAM vLLM can use. The right value depends on whether your inference GPU also drives a monitor:
+
+**Headless inference GPU** (monitor on a different GPU):
 
 | Value | Available VRAM (24GB card) | Use Case |
 |-------|---------------------------|----------|
-| `0.95` | 22.8 GB | Dedicated server (no desktop) — may crash on init |
-| `0.90` | 21.6 GB | Headless server recommended |
-| `0.85` | 20.4 GB | Server with desktop environment (Zorac default) |
+| `0.95` | 22.8 GB | Maximum — leaves minimal CUDA context headroom |
+| `0.92` | 22.1 GB | Zorac default for headless — safe with room for 32k context |
+| `0.90` | 21.6 GB | Conservative headless |
+
+**Single GPU with display:**
+
+| Value | Available VRAM (24GB card) | Use Case |
+|-------|---------------------------|----------|
+| `0.85` | 20.4 GB | Recommended — leaves room for desktop environment |
 | `0.80` | 19.2 GB | Conservative, leaves room for other GPU tasks |
 
-!!! warning "Don't Set Too High"
-    Setting `--gpu-memory-utilization` above 0.90 on a system with a desktop environment often causes initialization crashes. The display driver needs some VRAM.
+!!! warning "Display overhead matters"
+    Ubuntu's desktop environment, web browsers, window compositing, and display output consume 500MB–1.5GB of VRAM on the GPU driving the monitor. Setting `--gpu-memory-utilization` above 0.90 on a GPU that also drives a display often causes initialization crashes. If your inference GPU is headless — either because you have a second GPU driving the monitor, or because you're running Ubuntu Server with no desktop environment — this limitation doesn't apply.
 
 ### Max Model Length vs VRAM
 
-Longer context windows consume more VRAM for the KV cache. For Mistral-Small-24B on a 24GB card:
+Longer context windows consume more VRAM for the KV cache. With `--kv-cache-dtype fp8`, the KV cache uses roughly half the memory compared to FP16, making larger context windows practical:
 
-| Context Length | KV Cache Size | Fits with 0.85 util? |
-|---------------|---------------|---------------------|
-| 8,192 | ~4 GB | Comfortable |
-| 16,384 | ~8 GB | Good balance (default) |
-| 32,768 | ~16 GB | Tight — may OOM under load |
+| Context Length | KV Cache Size (FP8) | Headless (0.92 util) | With display (0.85 util) |
+|---------------|---------------------|----------------------|--------------------------|
+| 8,192 | ~0.9 GB | Comfortable | Comfortable |
+| 16,384 | ~1.8 GB | Comfortable | Good balance (recommended) |
+| 32,768 | ~3.6 GB | Good balance (recommended) | Tight — may OOM under load |
+
+Mistral-Small-24B natively supports a 32k context window. With a headless inference GPU and FP8 KV cache, you can use the full native 32k context — whether that's a dedicated GPU in a multi-GPU system or a single GPU on Ubuntu Server with no desktop environment. With a single GPU also running a display, stick to 16k.
 
 If you're hitting OOM errors during long conversations, reduce `--max-model-len` to `8192`.
 
@@ -256,7 +291,7 @@ nvidia-smi --query-gpu=memory.used,memory.total,utilization.gpu \
 ```
 
 Healthy metrics during Zorac chat:
-- **Memory used:** ~20-22 GB (model + KV cache)
+- **Memory used:** ~20-23 GB (model + KV cache, varies with context length and GPU config)
 - **GPU utilization:** Spikes to 80-100% during generation, drops to 0% between messages
 - **Temperature:** 50-70C under load (check your cooling)
 
@@ -320,15 +355,15 @@ If the vLLM server is on a different machine (e.g., a homelab server), ensure:
 **Common causes:**
 
 1. **`--max-num-seqs` too high** — Reduce to 32 or lower
-2. **`--gpu-memory-utilization` too high** — Try 0.85 or 0.80
-3. **`--max-model-len` too large** — Reduce to 8192
+2. **`--gpu-memory-utilization` too high** — If your GPU drives a monitor, use 0.85 (not 0.92+)
+3. **`--max-model-len` too large** — Reduce to 16384 (or 8192 if still crashing)
 4. **Another process using GPU memory** — Check with `nvidia-smi`
 
 **Fix:** Start with conservative values and increase gradually:
 
 ```bash
 vllm serve "model" \
-    --quantization awq_marlin \
+    --quantization compressed-tensors \
     --max-model-len 8192 \
     --gpu-memory-utilization 0.80 \
     --max-num-seqs 8
@@ -338,15 +373,15 @@ vllm serve "model" \
 
 **Symptom:** Generation speed is ~6 tok/s instead of the expected 60+ tok/s.
 
-**Cause:** Using the wrong quantization flag. The generic AWQ kernel is much slower than the Marlin-optimized version.
+**Cause:** Using the wrong quantization format. Models quantized with llmcompressor should use `compressed-tensors`, while models from other tools may use `awq` or `awq_marlin`.
 
-**Fix:** Ensure you're using `--quantization awq_marlin` (not `--quantization awq`):
+**Fix:** Ensure you're using the correct `--quantization` flag for your model's format:
 
 ```bash
-# Wrong (slow)
-vllm serve "model" --quantization awq
+# For llmcompressor-quantized models (Zorac default)
+vllm serve "model" --quantization compressed-tensors
 
-# Right (fast)
+# For autoawq-quantized models
 vllm serve "model" --quantization awq_marlin
 ```
 

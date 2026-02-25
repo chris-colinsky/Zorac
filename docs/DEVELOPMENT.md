@@ -36,26 +36,41 @@ zorac/
 │   ├── commands.py        # Command registry
 │   ├── config.py          # Configuration management
 │   ├── console.py         # Rich console singleton
+│   ├── handlers.py        # CommandHandlersMixin (all cmd_* methods)
+│   ├── history.py         # HistoryMixin (command history + Up/Down nav)
 │   ├── llm.py             # LLM operations
-│   ├── main.py            # Main event loop
+│   ├── main.py            # Textual TUI application orchestrator
 │   ├── markdown_custom.py # Custom markdown renderer
 │   ├── session.py         # Session persistence
-│   └── utils.py           # Utility functions
+│   ├── streaming.py       # StreamingMixin (LLM response streaming)
+│   ├── utils.py           # Utility functions
+│   └── widgets.py         # ChatInput widget (multiline + suggestions)
 ├── tests/                  # Test suite
-│   ├── __init__.py
-│   ├── test_commands.py   # Command registry tests (NEW)
+│   ├── test_commands.py   # Command registry tests
 │   └── test_zorac.py      # Comprehensive tests
-├── requirements/           # Requirements documents (NEW)
-│   └── help_feature.md    # Help feature requirements
+├── quant/                  # Quantization tooling
+│   ├── quantize_mistral.py # AWQ quantization script
+│   └── README.md          # Quantization guide
 ├── docs/                   # Documentation
+│   ├── index.md           # MkDocs site home page
+│   ├── img/               # Site images (logo, etc.)
+│   ├── stylesheets/       # Custom CSS for MkDocs
+│   ├── site/              # Educational content (MkDocs)
+│   │   ├── concepts/     # How LLMs Work, Quantization, etc.
+│   │   ├── guides/       # Server Setup, TUI, Multi-GPU
+│   │   ├── walkthroughs/ # Streaming, Quantizing, etc.
+│   │   └── decisions/    # Why AWQ, Why Textual
 │   ├── INSTALLATION.md
 │   ├── CONFIGURATION.md
 │   ├── USAGE.md
 │   ├── DEVELOPMENT.md     # This file
 │   ├── SERVER_SETUP.md    # vLLM server guide
-│   └── TEST_TRAINING.md   # Multi-GPU training guide (NEW)
+│   └── TEST_TRAINING.md   # Multi-GPU training guide
 ├── .github/workflows/      # CI/CD
+│   ├── ci.yml             # Continuous integration
+│   ├── docs.yml           # MkDocs deployment to GitHub Pages
 │   └── release.yml        # Release automation
+├── mkdocs.yml              # MkDocs site configuration
 ├── pyproject.toml          # Dependencies and metadata
 ├── uv.lock                 # Dependency lock file
 ├── .env.example            # Configuration template
@@ -84,7 +99,7 @@ open htmlcov/index.html
 
 ### Test Coverage
 
-Current coverage: **42%** with **34 passing tests**
+Current coverage: **51%** with **57 passing tests**
 
 The test suite covers:
 - **Token counting** with various message types
@@ -101,7 +116,13 @@ The test suite covers:
 - `zorac/session.py`: 100% coverage
 - `zorac/console.py`: 100% coverage
 - `zorac/llm.py`: 96% coverage
-- `zorac/markdown_custom.py`: 45% coverage (UI rendering, mostly tested via integration)
+- `zorac/utils.py`: 92% coverage
+- `zorac/config.py`: 59% coverage
+- `zorac/main.py`: 58% coverage
+- `zorac/widgets.py`: 47% coverage
+- `zorac/history.py`: 29% coverage
+- `zorac/streaming.py`: 27% coverage
+- `zorac/handlers.py`: 24% coverage
 
 **Coverage targets:**
 - Minimum 80% code coverage
@@ -168,23 +189,31 @@ make pre-commit
 ### Development Dependencies
 
 - **pytest** (>=8.0.0): Testing framework
+- **pytest-asyncio** (>=0.23.0): Async test support (configured with `asyncio_mode = "auto"`)
 - **pytest-cov** (>=4.1.0): Coverage reporting for pytest
 - **pytest-mock** (>=3.12.0): Mock fixtures for pytest
 - **ruff** (>=0.8.0): Fast Python linter and formatter
 - **mypy** (>=1.8.0): Static type checker
 - **pre-commit** (>=3.6.0): Git hook management
 
+### Documentation Dependencies
+
+Install with `uv sync --extra docs`:
+
+- **mkdocs** (>=1.6.0): Static site generator for documentation
+- **mkdocs-material** (>=9.5.0): Material theme for MkDocs
+
 ## Architecture Overview
 
 ### Module Breakdown
 
-**zorac/commands.py** - Command Registry (NEW)
+**zorac/commands.py** - Command Registry & System Message
 - Centralized registry of all interactive commands
 - `COMMANDS`: List of command definitions with descriptions
 - `get_help_text()`: Generates formatted help for `/help` display
 - `get_system_prompt_commands()`: Provides command info to LLM via system prompt
+- `get_initial_system_message()`: Builds the system prompt with identity, date, and command awareness
 - Single source of truth for command documentation
-- Enables LLM awareness of Zorac's capabilities
 
 **zorac/config.py** - Configuration Management
 - Three-tier priority: Environment Variables > Config File > Defaults
@@ -196,10 +225,29 @@ make pre-commit
 - Single Rich console instance for consistent formatting
 - Used across all modules for output
 
+**zorac/handlers.py** - Command Handlers (Mixin)
+- `CommandHandlersMixin`: All `cmd_*()` methods for `/help`, `/quit`, `/config`, etc.
+- Mixed into `ZoracApp` via Python MRO
+- Outputs via `_log_system()` / `_log_user()` methods from main app
+
+**zorac/history.py** - Command History (Mixin)
+- `HistoryMixin`: History load/save and Up/Down arrow navigation
+- `_load_history()`: Load from `~/.zorac/history`
+- `_save_history()`: Persist last 500 entries with multiline escaping
+- `on_key()`: Handles Up/Down arrow keys for readline-like history navigation
+
 **zorac/llm.py** - LLM Operations
 - `summarize_old_messages()`: Auto-summarization with status spinner
 - Handles API calls to vLLM server
 - Token limit management
+
+**zorac/main.py** - Textual TUI Application (Orchestrator)
+- `ZoracApp(CommandHandlersMixin, StreamingMixin, HistoryMixin, App)`: Main Textual application class
+- `compose()`: Yields `VerticalScroll#chat-log`, `ChatInput#user-input`, `Static#stats-bar`
+- `on_mount()` -> `_setup()`: Initialize `AsyncOpenAI` client, verify connection, load session
+- `handle_chat()`: Adds user message to chat log, launches `_stream_response()` worker
+- Session auto-save after each response
+- UI helpers: `_log_system()`, `_log_user()`, `_update_stats_bar()`, `_write_header()`
 
 **zorac/markdown_custom.py** - Custom Markdown Renderer
 - `LeftAlignedMarkdown`: Custom markdown renderer with left-aligned headings
@@ -207,13 +255,10 @@ make pre-commit
 - Provides cleaner, more readable terminal output
 - Maintains Rich styling (bold, colored) while forcing left justification
 
-**zorac/main.py** - Textual TUI application with chat log, stats bar, and input widgets
-- `get_initial_system_message()`: Generates enhanced system prompt with command info
-- Textual Input widget with SuggestFromList for slash command autocomplete
-- Real-time streaming via `Markdown.get_stream()` with persistent stats bar
-- Streaming and non-streaming response modes
-- Session auto-save after each response
-- Stats bar widget (`Static#stats-bar`) docked to bottom for always-visible metrics
+**zorac/streaming.py** - LLM Streaming (Mixin)
+- `StreamingMixin`: `_stream_response()` worker method
+- Streams LLM response using `Markdown.get_stream()`, updates `Static#stats-bar` in real-time
+- Runs as `@work(exclusive=True)` background worker
 
 **zorac/session.py** - Session Persistence
 - `save_session()`: Saves conversation to JSON
@@ -224,6 +269,11 @@ make pre-commit
 - `count_tokens()`: Uses tiktoken to count tokens in conversation
 - `print_header()`: Displays formatted welcome header
 - `check_connection()`: Verifies vLLM server connectivity
+
+**zorac/widgets.py** - Chat Input Widget
+- `ChatInput(TextArea)`: Multiline input widget with Enter to submit, Shift+Enter for newlines
+- Auto-resizes from 1 to 5 lines based on content
+- Inline command suggestions for `/commands`, accepted with Tab
 
 ## Adding Features
 
@@ -312,28 +362,6 @@ def _left_aligned_heading_rich_console(self, console, options):
 - `Static#stats-bar` displays real-time metrics during streaming
 - Stats bar updates in real-time during streaming, persists after response
 - Stats persist in bottom toolbar between interactions
-
-## Feature Requirements
-
-The `requirements/` directory contains detailed specifications for features. When adding significant new functionality:
-
-1. **Create a requirements document**: `requirements/feature_name.md`
-2. **Include these sections**:
-   - Overview and user stories
-   - Functional requirements
-   - Technical design
-   - Implementation plan
-   - Testing strategy
-   - Documentation updates
-   - Acceptance criteria
-
-**Example:** See `requirements/help_feature.md` for a comprehensive example of a feature specification.
-
-**Benefits:**
-- Clear specification before implementation
-- Easier code review
-- Better documentation
-- Prevents scope creep
 
 ## Publishing Releases
 
@@ -551,7 +579,6 @@ Before submitting a PR:
 - [ ] Type checking passes: `make type-check`
 - [ ] Documentation is updated (README, USAGE, CLAUDE.md as needed)
 - [ ] New commands added to command registry (`zorac/commands.py`)
-- [ ] Requirements document created for significant features (`requirements/`)
 - [ ] CHANGELOG.md is updated
 - [ ] Commit messages are clear and descriptive
 
