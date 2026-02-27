@@ -24,7 +24,7 @@ Simply type your message at the `You:` prompt and press Enter. Commands auto-com
 ```
 You: Explain quantum entanglement
 Assistant: [Response streams in real-time with markdown formatting...]
-Stats: 245 tokens in 3.8s (64.5 tok/s) | Total: 4 msgs | Tokens: 312/12000
+Stats: 245 tokens in 3.8s (64.5 tok/s) | Total: 4 msgs | Tokens: 312/28000
 ```
 
 The assistant will respond, and the conversation is automatically saved.
@@ -138,14 +138,14 @@ You: /tokens
 
 📊 Token usage:
    Current: ~3421 tokens
-   Limit: 12000 tokens
-   Remaining: ~8579 tokens
+   Limit: 28000 tokens
+   Remaining: ~24579 tokens
    Messages: 12
 ```
 
 ### Automatic Summarization
 
-When your conversation exceeds `MAX_INPUT_TOKENS` (default: 12000):
+When your conversation exceeds `MAX_INPUT_TOKENS` (default: 28000):
 
 1. Zorac automatically triggers summarization
 2. Older messages are condensed into a summary
@@ -193,7 +193,7 @@ You: /config list
 Configuration:
   VLLM_BASE_URL:      http://localhost:8000/v1
   VLLM_MODEL:         dark-side-of-the-code/Mistral-Small-24B-Instruct-2501-AWQ
-  MAX_INPUT_TOKENS:   12000
+  MAX_INPUT_TOKENS:   28000
   MAX_OUTPUT_TOKENS:  4000
   KEEP_RECENT_MESSAGES: 6
   TEMPERATURE:        0.1
@@ -231,7 +231,7 @@ TEMPERATURE = 0.1
 After each response, Zorac displays performance statistics:
 
 ```
-Stats: 147 tokens in 2.34s (62.82 tok/s) | Total msgs: 12 | Tokens: ~3421/12000
+Stats: 147 tokens in 2.34s (62.82 tok/s) | Total msgs: 12 | Tokens: ~3421/28000
 ```
 
 **Metrics explained:**
@@ -239,7 +239,7 @@ Stats: 147 tokens in 2.34s (62.82 tok/s) | Total msgs: 12 | Tokens: ~3421/12000
 - **2.34s** - Time taken to generate the response
 - **62.82 tok/s** - Tokens per second (generation speed)
 - **Total msgs: 12** - Total messages in conversation
-- **Tokens: ~3421/12000** - Current token usage vs. limit
+- **Tokens: ~3421/28000** - Current token usage vs. limit
 
 ## Tips & Best Practices
 
@@ -251,7 +251,7 @@ Use `/tokens` regularly to monitor your conversation size:
 You: /tokens
 ```
 
-The auto-summarization kicks in at 12k tokens, but you can manually `/clear` anytime.
+The auto-summarization kicks in at 28k tokens, but you can manually `/clear` anytime.
 
 ### Interrupt Long Responses
 
@@ -309,11 +309,11 @@ You: /summary
 # Continue conversation
 You: Can you explain that concept in more detail?
 Assistant: [Detailed explanation...]
-Stats: 342 tokens in 5.2s (65.8 tok/s) | Total: 6 msgs | Tokens: ~1234/12000
+Stats: 342 tokens in 5.2s (65.8 tok/s) | Total: 6 msgs | Tokens: ~1234/28000
 
 # Check token usage
 You: /tokens
-Current: ~1234 tokens | Limit: 12000 | Remaining: ~10766
+Current: ~1234 tokens | Limit: 28000 | Remaining: ~26766
 
 # Adjust settings for more creative responses
 You: /config set TEMPERATURE 0.8

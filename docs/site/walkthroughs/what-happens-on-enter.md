@@ -193,7 +193,7 @@ Step by step:
 2. **Connection check** — If offline, try to reconnect before sending the message
 3. **Display the user's message** in the chat log via `_log_user()`
 4. **Append to conversation history** — The `messages` list follows the OpenAI message format (`role` + `content`)
-5. **Token budget check** — `count_tokens()` uses tiktoken to count the total tokens in the conversation. If it exceeds `MAX_INPUT_TOKENS` (default: 12,000), older messages are summarized to free up space
+5. **Token budget check** — `count_tokens()` uses tiktoken to count the total tokens in the conversation. If it exceeds `MAX_INPUT_TOKENS` (default: 28,000), older messages are summarized to free up space
 6. **Disable input** — Prevents the user from sending another message while streaming
 7. **Launch the streaming worker** — `_stream_response()` runs in a background thread
 
@@ -339,7 +339,7 @@ This step:
 The stats bar now shows something like:
 
 ```
-Stats: 245 tokens in 3.8s (64.5 tok/s) | Total: 4 msgs, ~312/12000 tokens
+Stats: 245 tokens in 3.8s (64.5 tok/s) | Total: 4 msgs, ~312/28000 tokens
 ```
 
 ---

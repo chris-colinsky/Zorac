@@ -774,7 +774,7 @@ class TestStatsBar:
             assert "1.5s" in text
             assert "28.0 tok/s" in text
             assert "5 msgs" in text
-            assert "800/12000" in text
+            assert "800/28000" in text
 
 
 class TestCheckConnectionAsync:

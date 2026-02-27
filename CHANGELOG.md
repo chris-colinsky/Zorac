@@ -5,9 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.1] - 2026-02-26
+
+### Changed
+
+- **Default context window**: `MAX_INPUT_TOKENS` default increased from 12,000 to 28,000 tokens, aligning with the full usable capacity of the 32k Mistral-Small-24B context window
+
+### Fixed
+
+- **Homebrew bottles**: Pre-built bottles now available for macOS (`arm64_sequoia`, `arm64_sonoma`) — `brew install zorac` downloads a pre-built binary in seconds instead of compiling Rust extensions from source
+- **Homebrew formula**: Added `rust` build dependency, `RUSTFLAGS=-C link-arg=-headerpad_max_install_names`, and `--no-binary jiter,pydantic-core,tiktoken` to fix Mach-O dylib relocation errors that caused `brew install` to fail
+- **CI release pipeline**: `update-homebrew` job now writes the correct formula on every release, automatically triggering bottle builds in the tap repo
+
 ## [1.4.0] - 2026-02-25
 
 ### Added
+
 - **MkDocs Educational Site**: New documentation site at `zorac.lowgravitylab.com` built with MkDocs + Material theme, deployed to GitHub Pages via CI
   - Concepts: Inference servers, quantization
   - Guides: Server setup, building the TUI, multi-GPU training
@@ -23,21 +36,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Detailed documentation covering hardware requirements, how the pipeline works, quantization parameters, and model card template
 
 ### Changed
+
 - **Model Reference**: Updated default model to `dark-side-of-the-code/Mistral-Small-24B-Instruct-2501-AWQ` across all documentation and configuration
 - **Documentation Links**: Updated all documentation links to point to the new site (`zorac.lowgravitylab.com`)
 - **Documentation Enhancements**: Expanded content on AWQ quantization, Textual TUI setup, inference servers, server setup guides, and configuration reference
 
 ### Fixed
+
 - **Type Checking**: Resolved all mypy errors in mixin type stubs and monkey-patched methods
 
 ## [1.3.1] - 2026-02-16
 
 ### Fixed
+
 - Fix image source in README to point to the correct main branch
 
 ## [1.3.0] - 2026-02-16
 
 ### Changed
+
 - **UI Framework**: Complete migration from Rich/prompt_toolkit REPL to Textual TUI framework
   - Full terminal user interface with scrollable chat log, persistent stats bar, and multiline input bar
   - `ZoracApp(App)` replaces `Zorac` class as the main application controller
@@ -71,6 +88,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - CLAUDE.md expanded with full architecture overview
 
 ### Added
+
 - **Textual TUI**: `textual>=1.0.0` dependency for modern terminal user interface
   - `VerticalScroll#chat-log` — scrollable chat area with mounted message widgets
   - `ChatInput#user-input` — multiline input (1-5 lines auto-resize) with Enter to submit, Shift+Enter for newlines
@@ -102,6 +120,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Expanded test coverage (~3x increase in test lines)
 
 ### Removed
+
 - `prompt-toolkit` dependency (replaced by `textual`)
 - `SlashCommandCompleter` class (replaced by `SuggestFromList` ghost text)
 - `ConstrainedWidth` class (Textual handles layout width)
@@ -111,6 +130,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `requirements/help_feature.md` (integrated into codebase)
 
 ### Migration Notes
+
 - **No user-facing configuration changes required** — existing `.env` and `~/.zorac/config.json` files work as-is
 - **Command history is backward-compatible** — handles prompt_toolkit `+` prefix format
 - **Session files are fully compatible** — conversations restore seamlessly
@@ -121,6 +141,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.2.0] - 2026-02-02
 
 ### Changed
+
 - **Distribution**: Migrated from binary releases to PyPI + Homebrew
   - Install via `pip install zorac` or `pipx install zorac`
   - Install via `brew tap chris-colinsky/zorac && brew install zorac`
@@ -128,16 +149,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Automated releases via GitHub Actions with Trusted Publisher (OIDC)
 
 ### Removed
+
 - Binary releases (zorac-linux-x86_64, zorac-macos-arm64)
 - PyInstaller build files (`zorac.spec`, `run_zorac.py`)
 
 ### Improved
+
 - Simpler installation process - standard Python packaging
 - Automatic dependency management via pip/brew
 - Easier upgrades (`pip install --upgrade zorac` or `brew upgrade zorac`)
 - No more macOS Gatekeeper warnings for unsigned binaries
 
 ### Migration Notes
+
 - Users of binary releases should switch to pip/pipx/brew installation
 - All functionality remains the same
 - Configuration in `~/.zorac/` is preserved
@@ -145,6 +169,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.1.0] - 2026-02-01
 
 ### Added
+
 - **`/help` Command**: Interactive command to display all available commands with descriptions
   - Shows formatted list of all commands (zorac/main.py:188-191)
   - Includes special formatting for `/config` subcommands
@@ -182,6 +207,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Ensures command registry integrity
 
 ### Changed
+
 - **Stats Display**: Changed from Rich Panel to plain text for cleaner appearance
   - Stats now displayed as dim text without border
   - Reduced visual clutter in terminal output
@@ -198,6 +224,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **CLAUDE.md**: Enhanced with 46 lines covering new architecture components
 
 ### Improved
+
 - **Code Organization**: Command definitions centralized in dedicated module
 - **Type Safety**: Full TypedDict annotations for command structures
 - **Documentation**: Comprehensive multi-GPU training documentation
@@ -205,6 +232,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Readability**: Better terminal layout with constrained width and left-aligned headings
 
 ### Technical Details
+
 - Added `zorac/commands.py` module (134 lines)
 - Added `zorac/markdown_custom.py` module (43 lines)
 - Enhanced `zorac/main.py` with 76 additional lines
@@ -215,6 +243,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.0.0]
 
 ### Added
+
 - **Modular Package Structure**: Refactored from monolithic file to organized package with 8 focused modules
   - `config.py` - Configuration management with priority system
   - `console.py` - Rich console singleton
@@ -226,7 +255,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `__main__.py` - Module entry point for `python -m zorac`
 
 - **Configurable Parameters**: All token limits and model parameters are now configurable
-  - `MAX_INPUT_TOKENS` (default: 12000)
+  - `MAX_INPUT_TOKENS` (default: 28000)
   - `MAX_OUTPUT_TOKENS` (default: 4000)
   - `KEEP_RECENT_MESSAGES` (default: 6)
   - `TEMPERATURE` (default: 0.1)
@@ -278,6 +307,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Cleaner, more focused README as navigation hub
 
 ### Changed
+
 - **Architecture**: Transitioned from single-file to modular package structure for better maintainability
 - **Entry Points**: Now supports three execution methods:
   - `python -m zorac` (module execution)
@@ -287,6 +317,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Platform Support**: Linux and macOS officially supported (Windows users can use WSL)
 
 ### Improved
+
 - **Code Organization**: 53% reduction in perceived complexity through modularization
 - **Testability**: Each module can be tested independently
 - **Documentation**: Comprehensive updates to README.md, CLAUDE.md, and CONTRIBUTING.md
@@ -294,6 +325,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Code Coverage**: Improved test coverage to 37% with 28 passing tests
 
 ### Technical Details
+
 - Python 3.13+ required
 - Full mypy type checking support
 - Ruff linting compliance
@@ -301,12 +333,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Comprehensive test suite (28 tests, 100% passing)
 
 ### Migration Notes
+
 For users upgrading from development versions:
+
 - Session file moved from `~/.zorac_session.json` to `~/.zorac/session.json`
 - Run `mkdir -p ~/.zorac && mv ~/.zorac_session.json ~/.zorac/session.json` to migrate
 - All previous environment variables still work as before
 - New configuration options are optional with sensible defaults
 
+[1.4.1]: https://github.com/chris-colinsky/zorac/releases/tag/v1.4.1
 [1.4.0]: https://github.com/chris-colinsky/zorac/releases/tag/v1.4.0
 [1.3.1]: https://github.com/chris-colinsky/zorac/releases/tag/v1.3.1
 [1.3.0]: https://github.com/chris-colinsky/zorac/releases/tag/v1.3.0

@@ -46,8 +46,8 @@ When users ask about installation, configuration, or usage, refer them to the ap
 ## File Structure
 
 - **zorac/**: Main package directory containing the application modules
-  - **__init__.py**: Package exports and public API
-  - **__main__.py**: Entry point for `python -m zorac`
+  - ****init**.py**: Package exports and public API
+  - ****main**.py**: Entry point for `python -m zorac`
   - **commands.py**: Command registry, help text generation, and `get_initial_system_message()`
   - **config.py**: Configuration management and environment variables
   - **console.py**: Rich console singleton for terminal output
@@ -62,7 +62,7 @@ When users ask about installation, configuration, or usage, refer them to the ap
   - **widgets.py**: `ChatInput(TextArea)` — multiline input widget with command suggestions
 - **tests/**: Comprehensive test suite with 28 test cases
   - **test_zorac.py**: Unit and integration tests
-  - **__init__.py**: Test package marker
+  - ****init**.py**: Test package marker
 - **docs/**: User and developer documentation
   - **INSTALLATION.md**: Installation guide (Homebrew, pip, pipx, source)
   - **CONFIGURATION.md**: Configuration guide (server, token limits, model parameters)
@@ -89,6 +89,7 @@ Zorac is organized as a modular Python package with clear separation of concerns
 ### Package Modules
 
 **zorac/commands.py** - Command Registry & System Message
+
 - `COMMANDS`: Centralized list of all interactive commands with descriptions
 - `get_help_text()`: Generate formatted help text for `/help` command display
 - `get_system_prompt_commands()`: Generate command information for system prompt (enables LLM command awareness)
@@ -96,6 +97,7 @@ Zorac is organized as a modular Python package with clear separation of concerns
 - Single source of truth for all command definitions
 
 **zorac/config.py** - Configuration Management
+
 - `load_config()`: Load configuration from `~/.zorac/config.json`
 - `save_config(config)`: Save configuration to disk
 - `get_setting(key, default)`: Get setting with priority: Env Var > Config File > Default
@@ -103,46 +105,56 @@ Zorac is organized as a modular Python package with clear separation of concerns
 - Constants: `VLLM_BASE_URL`, `VLLM_MODEL`, `VLLM_API_KEY`, `MAX_INPUT_TOKENS`, etc.
 
 **zorac/session.py** - Session Management
+
 - `save_session(messages)`: Persists conversation to `~/.zorac/session.json`
 - `load_session()`: Restores conversation from disk
 
 **zorac/utils.py** - Utility Functions
+
 - `count_tokens(messages, encoding_name=None)`: Uses tiktoken to count tokens in conversation history (encoding defaults to configured `TIKTOKEN_ENCODING`)
 - `print_header()`: Displays formatted welcome header with Rich panels and ASCII art logo
 - `async check_connection(client: AsyncOpenAI)`: Verifies connection to vLLM server (async)
 
 **zorac/llm.py** - LLM Operations
+
 - `async summarize_old_messages(client: AsyncOpenAI, messages, auto=True)`: Auto-summarizes when approaching token limit with status spinner. Uses `VLLM_MODEL` from config.
 
 **zorac/console.py** - Terminal Interface
+
 - `console`: Shared Rich Console instance for all terminal output
 
 **zorac/markdown_custom.py** - Custom Markdown Renderer
+
 - `LeftAlignedMarkdown`: Custom markdown renderer that left-aligns all headings (monkey-patches Rich's Heading class)
 - Removes centered heading panels for cleaner, more readable terminal output
 - Maintains Rich styling (bold, colored) while forcing left justification
 
 **zorac/widgets.py** - Chat Input Widget
+
 - `ChatInput(TextArea)`: Multiline input widget with Enter to submit, Shift+Enter for newlines
 - Auto-resizes from 1 to 5 lines based on content
 - Inline command suggestions for `/commands`, accepted with Tab
 
 **zorac/handlers.py** - Command Handlers (Mixin)
+
 - `CommandHandlersMixin`: All `cmd_*()` methods for `/help`, `/quit`, `/config`, etc.
 - Mixed into `ZoracApp` via Python MRO
 - Outputs via `_log_system()` / `_log_user()` methods from main app
 
 **zorac/history.py** - Command History (Mixin)
+
 - `HistoryMixin`: History load/save and Up/Down arrow navigation
 - `_load_history()`: Load from `~/.zorac/history` with prompt_toolkit migration
 - `_save_history()`: Persist last 500 entries with multiline escaping
 - `on_key()`: Handles Up/Down arrow keys for readline-like history navigation
 
 **zorac/streaming.py** - LLM Streaming (Mixin)
+
 - `StreamingMixin`: `_stream_response()` worker method
 - `_stream_response()` (`@work`, `exclusive=True`): Streams LLM response using `Markdown.get_stream()`, updates `Static#stats-bar` in real-time
 
 **zorac/main.py** - Main Application (Orchestrator)
+
 - `ZoracApp(CommandHandlersMixin, StreamingMixin, HistoryMixin, App)`: Main Textual application class
   - `compose()`: Yields `VerticalScroll#chat-log`, `ChatInput#user-input`, `Static#stats-bar`
   - `on_mount()` -> `_setup()`: Initialize `AsyncOpenAI` client, verify connection, load session, write header
@@ -155,6 +167,7 @@ Zorac is organized as a modular Python package with clear separation of concerns
 ### UI/UX Implementation
 
 **Core Rendering:**
+
 - **Textual Widgets**: All output is rendered via Textual widgets mounted in the application DOM
 - **Streaming Markdown**: Assistant responses stream in real-time using Textual's `Markdown.get_stream()` API, yielding tokens into a live-updating `Markdown` widget inside `VerticalScroll#chat-log`
 - **Markdown Rendering**: All assistant responses are rendered as formatted markdown via Textual's built-in `Markdown` widget
@@ -163,6 +176,7 @@ Zorac is organized as a modular Python package with clear separation of concerns
 - **Color Coding**: Consistent color scheme (blue=prompt, purple=assistant, green=success, red=error, yellow=warning)
 
 **Input Bar:**
+
 - **Multiline ChatInput Widget**: `ChatInput#user-input` (extends `TextArea`) docked to the bottom with placeholder text "Type your message or /command"
 - **Enter/Shift+Enter**: Enter submits the message, Shift+Enter inserts a newline. Works in iTerm2 (via ctrl+j), kitty, and WezTerm (via Kitty keyboard protocol). In terminals where Shift+Enter is indistinguishable from Enter (e.g., macOS Terminal.app), Enter always submits; multiline input is still possible via paste.
 - **Auto-Resize**: Input grows from 1 to 5 lines based on content
@@ -172,11 +186,13 @@ Zorac is organized as a modular Python package with clear separation of concerns
   - After chat: response stats (tokens, duration, tok/s) and conversation totals
 
 **Layout:**
+
 - **Chat Log**: `VerticalScroll#chat-log` occupies the main area, containing all conversation messages as mounted widgets
 - **Input**: `ChatInput#user-input` docked to the bottom for multiline text entry (Enter submits, Shift+Enter for newlines)
 - **Stats Bar**: `Static#stats-bar` docked to the bottom below the input, updated in real-time during streaming
 
 **Layout & Typography:**
+
 - **Full-Width Output**: Assistant responses render at full terminal width
 - **Left-Aligned Headings**: Custom `LeftAlignedMarkdown` renderer removes centered heading panels
   - H1: Bold white text with spacing
@@ -187,16 +203,19 @@ Zorac is organized as a modular Python package with clear separation of concerns
 - **Responsive Design**: Content adapts to current console size
 
 **Streaming Stats:**
+
 - During streaming: `Static#stats-bar` is updated in real-time via `stats_bar.update()` showing token count, elapsed time, and tok/s
 - Stats persist in the bottom bar across prompts without inline display
 - After streaming: `self.stats` dict is updated and the stats bar reflects the latest response metrics
 
 **Implementation Details:**
+
 - `LeftAlignedMarkdown` monkey-patches Rich's `Heading.__rich_console__` method to force left alignment
 - Textual CSS styles the input widget, stats bar, and chat log layout
 - `_stream_response()` uses `@work(exclusive=True)` to run streaming in a background worker thread
 
 ### Key Features
+
 - **Textual TUI**: Full terminal user interface built on the Textual framework with widgets, layout, streaming, and event handling
 - **Persistent Sessions**: Auto-saves after each assistant response to `~/.zorac/session.json`
 - **Auto-Summarization**: When conversation exceeds 12k tokens, summarizes older messages while preserving the last 6 messages
@@ -216,6 +235,7 @@ Zorac is organized as a modular Python package with clear separation of concerns
 Configuration is managed through a `.env` file in the project root. Copy `.env.example` to `.env` and customize as needed.
 
 ### Server Configuration (via .env file or `~/.zorac/config.json`)
+
 - `VLLM_BASE_URL`: Default `http://localhost:8000/v1` (vLLM server endpoint)
 - `VLLM_API_KEY`: Default `"EMPTY"` (vLLM doesn't require authentication)
 - `VLLM_MODEL`: Default `dark-side-of-the-code/Mistral-Small-24B-Instruct-2501-AWQ`
@@ -225,26 +245,32 @@ Configuration is managed through a `.env` file in the project root. Copy `.env.e
 - `ZORAC_CONFIG_FILE`: Optional - Custom config file location (defaults to `~/.zorac/config.json`)
 
 ### Display
+
 - `CODE_THEME`: Default `monokai` - Pygments theme for syntax-highlighted code blocks (any Pygments style name supported)
 
 **Configuration Priority**: Environment Variable > Config File (`~/.zorac/config.json`) > Default Value
 
 ### Token Limits (Configurable)
-- `MAX_INPUT_TOKENS`: Default `12000` - Max tokens for system prompt + chat history
+
+- `MAX_INPUT_TOKENS`: Default `28000` - Max tokens for system prompt + chat history
 - `MAX_OUTPUT_TOKENS`: Default `4000` - Max tokens for model responses
 - `KEEP_RECENT_MESSAGES`: Default `6` - Messages preserved during auto-summarization
 
 ### Model Parameters (Configurable)
+
 - `TEMPERATURE`: Default `0.1` - Controls randomness (0.0-2.0, lower = more deterministic)
 - `STREAM`: Default `true` - Enable/disable real-time token streaming with live markdown rendering
 
 ### Token Counting (Configurable)
+
 - `TIKTOKEN_ENCODING`: Default `cl100k_base` - Tiktoken encoding for token counting (change when using a model family with a different tokenizer, e.g. `o200k_base` for GPT-4o)
 
 ### Display (Configurable)
+
 - `CODE_THEME`: Default `monokai` - Pygments theme for syntax-highlighted code blocks
 
 **Note**: All token limits and model parameters can be configured via:
+
 1. Environment variables in `.env` file
 2. Runtime configuration in `~/.zorac/config.json`
 3. The `/config` command during a chat session
@@ -252,6 +278,7 @@ Configuration is managed through a `.env` file in the project root. Copy `.env.e
 ## Development Commands
 
 ### Environment Setup
+
 ```bash
 # Python 3.13 is required (specified in .python-version)
 # Complete development setup (install deps + pre-commit hooks)
@@ -264,6 +291,7 @@ cp .env.example .env
 ```
 
 ### Running the Application
+
 ```bash
 # Run with Make
 make run
@@ -283,6 +311,7 @@ VLLM_BASE_URL="http://your-server:8000/v1" uv run zorac
 ```
 
 ### Installation as a CLI Tool
+
 ```bash
 # Install globally (recommended)
 uv tool install .
@@ -331,6 +360,7 @@ make pre-commit
 ### Test Coverage
 
 The test suite uses pytest with pytest-asyncio (mode=auto) for async test support. It covers:
+
 - **TestCountTokens**: Token counting with various message types and edge cases
 - **TestSessionManagement**: Save/load functionality, error handling, invalid inputs
 - **TestPrintHeader**: UI header rendering
@@ -345,11 +375,13 @@ The test suite uses pytest with pytest-asyncio (mode=auto) for async test suppor
 - **TestHelpFeatureIntegration**: System message, help output, and token budget
 
 **Coverage targets:**
+
 - Minimum 80% code coverage
 - All core functions tested
 - Edge cases and error paths covered
 
 ### Interactive Commands (in the CLI)
+
 - `/help` - Show all available commands with descriptions
 - `/clear` - Reset conversation to initial system message and save
 - `/save` - Manually save session to disk
@@ -370,13 +402,14 @@ For server configuration details, see **docs/SERVER_SETUP.md**. Key points:
 
 - **Hardware**: RTX 4090 (24GB VRAM)
 - **Quantization**: AWQ with Marlin kernel (`--quantization awq_marlin`)
-- **Context Length**: 16,384 tokens (`--max-model-len 16384`)
+- **Context Length**: 32,768 tokens (`--max-model-len 32768`)
 - **Concurrent Users**: 32 (`--max-num-seqs 32` - prevents OOM on 24GB cards)
 - **Tool Support**: Enabled for LangChain/LangGraph (`--enable-auto-tool-choice --tool-call-parser mistral`)
 
 ## Dependencies
 
 ### Production Dependencies
+
 - **openai** (>=2.8.1): OpenAI client library for vLLM API (uses `AsyncOpenAI` for async operations)
 - **tiktoken** (>=0.8.0): Token counting (encoding configurable via `TIKTOKEN_ENCODING`, default `cl100k_base`)
 - **python-dotenv** (>=1.0.0): Environment variable management from .env files
@@ -384,6 +417,7 @@ For server configuration details, see **docs/SERVER_SETUP.md**. Key points:
 - **textual** (>=1.0.0): Modern TUI framework providing the full terminal user interface with widgets, layout, streaming, and event handling
 
 ### Development Dependencies
+
 - **pytest** (>=8.0.0): Testing framework
 - **pytest-asyncio** (>=0.23.0): Async test support (configured with `asyncio_mode = "auto"`)
 - **pytest-cov** (>=4.1.0): Coverage reporting for pytest
@@ -395,10 +429,12 @@ For server configuration details, see **docs/SERVER_SETUP.md**. Key points:
 ## Distribution
 
 Zorac is distributed via:
+
 - **PyPI**: `pip install zorac` / `pipx install zorac`
 - **Homebrew**: `brew tap chris-colinsky/zorac && brew install zorac`
 
 ### Release Workflow
+
 1. Update version in `pyproject.toml`
 2. Update `CHANGELOG.md`
 3. Merge changes to `main`
@@ -409,14 +445,17 @@ Zorac is distributed via:
 ## Documentation Strategy
 
 ### SEO/AEO Optimization
+
 The project documentation is optimized for search engines and AI answer engines (ChatGPT, Claude, Perplexity) to maximize discoverability:
 
 **Target Keywords:**
+
 - Primary: "self-hosted LLM", "local AI", "ChatGPT alternative", "vLLM setup"
 - Secondary: "RTX 4090 AI", "homelab LLM", "offline AI", "privacy-focused AI"
 - Long-tail: "how to run llm locally", "free chatgpt alternative", "gaming pc ai server"
 
 **README.md Structure:**
+
 - SEO-optimized title and subtitle emphasizing "self-hosted" and "local"
 - "Why Self-Host?" section addressing common search queries
 - Supported Hardware table for GPU-specific searches
@@ -426,11 +465,13 @@ The project documentation is optimized for search engines and AI answer engines 
 - "Also Useful For" section expanding use case coverage
 
 **docs/SERVER_SETUP.md Strategy:**
+
 - Beginner-friendly intro emphasizing "$0/month" and "complete privacy"
 - Targets tutorial-seeking users ("how to host LLM locally")
 - Mentions multiple GPU models for broader hardware search coverage
 
 **GitHub Metadata (see GITHUB_METADATA.md):**
+
 - 20+ repository topics covering all relevant keywords
 - Description optimized for GitHub search and Google indexing
 - Social preview image recommended for visual appeal

@@ -341,7 +341,7 @@ if user_input.lower() == "/mycommand":
 Modify via `.env` file or `/config` command:
 
 ```python
-MAX_INPUT_TOKENS = get_int_setting("MAX_INPUT_TOKENS", 12000)
+MAX_INPUT_TOKENS = get_int_setting("MAX_INPUT_TOKENS", 28000)
 ```
 
 ### UI Customization
@@ -562,8 +562,8 @@ Zorac includes an innovative feature where the LLM assistant running inside the 
 
 The enhanced system prompt adds ~400-450 tokens to each session. This is acceptable because:
 
-- Default context limit is 12,000 tokens
-- Overhead is <4% of available context
+- Default context limit is 28,000 tokens
+- Overhead is <2% of available context
 - Users benefit from having an assistant that knows how to use the tool
 
 ### Testing Command Awareness

@@ -56,10 +56,10 @@ On first launch, a setup wizard asks for your vLLM server URL and model name (pr
 
 ### 3. Start Chatting
 
-```
+```text
 You: Explain how neural networks learn
 Assistant: [Response streams in real-time with markdown formatting...]
-Stats: 245 tokens in 3.8s (64.5 tok/s) | Total: 4 msgs, ~312/12000 tokens
+Stats: 245 tokens in 3.8s (64.5 tok/s) | Total: 4 msgs, ~312/28000 tokens
 ```
 
 That's it. Your conversation is automatically saved and restored between sessions.
@@ -131,7 +131,7 @@ You: /config set TEMPERATURE 0.7
 | `MAX_OUTPUT_TOKENS`    | `4000`                                                      | Maximum tokens per response                                            |
 | `STREAM`               | `true`                                                      | Real-time streaming (`true`) or wait for complete response (`false`)   |
 | **Context Management** |                                                             |                                                                        |
-| `MAX_INPUT_TOKENS`     | `12000`                                                     | Token budget for system prompt + conversation history                  |
+| `MAX_INPUT_TOKENS`     | `28000`                                                     | Token budget for system prompt + conversation history                  |
 | `KEEP_RECENT_MESSAGES` | `6`                                                         | Messages preserved when auto-summarization triggers                    |
 | **Display**            |                                                             |                                                                        |
 | `CODE_THEME`           | `monokai`                                                   | Pygments syntax highlighting theme for code blocks                     |
@@ -149,7 +149,7 @@ Configuration:
   VLLM_BASE_URL:        http://localhost:8000/v1
   VLLM_MODEL:           dark-side-of-the-code/Mistral-Small-24B-Instruct-2501-AWQ
   VLLM_API_KEY:         EMPT...
-  MAX_INPUT_TOKENS:     12000
+  MAX_INPUT_TOKENS:     28000
   MAX_OUTPUT_TOKENS:    4000
   KEEP_RECENT_MESSAGES: 6
   TEMPERATURE:          0.1
@@ -184,8 +184,8 @@ Zorac tracks tokens to stay within your model's context window:
 You: /tokens
 📊 Token usage:
    Current: ~3421 tokens
-   Limit: 12000 tokens
-   Remaining: ~8579 tokens
+   Limit: 28000 tokens
+   Remaining: ~24579 tokens
    Messages: 12
 ```
 

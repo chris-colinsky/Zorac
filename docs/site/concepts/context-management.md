@@ -13,7 +13,7 @@ Every LLM has a **context window** — a fixed limit on the total number of toke
 For Mistral-Small-24B as configured in Zorac:
 
 ```
-Context window:     16,384 tokens (set by --max-model-len)
+Context window:     32,768 tokens (set by --max-model-len)
 ├── System prompt:    ~200 tokens
 ├── Chat history:    variable (grows with conversation)
 ├── Current message:  variable
@@ -23,10 +23,10 @@ Context window:     16,384 tokens (set by --max-model-len)
 The available space for conversation history is:
 
 ```
-16,384 - 200 (system) - 4,000 (response budget) = ~12,184 tokens
+32,768 - 200 (system) - 4,000 (response budget) = ~28,568 tokens
 ```
 
-This is why Zorac defaults to `MAX_INPUT_TOKENS=12000` — it reserves enough room for the model to generate a full response.
+This is why Zorac defaults to `MAX_INPUT_TOKENS=28000` — it reserves enough room for the model to generate a full response.
 
 ### Why It Has a Fixed Size
 
@@ -36,7 +36,7 @@ The context window size is determined by the model's architecture and the availa
 KV cache memory ≈ 2 × num_layers × hidden_size × context_length × bytes_per_element
 ```
 
-On an RTX 4090 with a 24B AWQ model, the KV cache for 16k tokens uses approximately 8GB of VRAM — a significant chunk of the 24GB available. Doubling the context to 32k would require ~16GB for the KV cache alone, leaving barely enough for the model weights.
+On an RTX 4090 with a 24B AWQ model, the KV cache for 32k tokens uses approximately 16GB of VRAM — a significant chunk of the 24GB available. Expanding beyond 32k would leave insufficient VRAM for model weights.
 
 ### What Happens When You Exceed It
 
@@ -119,7 +119,7 @@ if current_tokens > MAX_INPUT_TOKENS:
     await self._summarize_messages()
 ```
 
-When the conversation exceeds `MAX_INPUT_TOKENS` (default: 12,000), auto-summarization kicks in. This threshold leaves a comfortable buffer below the actual context window (16,384 tokens) to account for the model's response.
+When the conversation exceeds `MAX_INPUT_TOKENS` (default: 28,000), auto-summarization kicks in. This threshold leaves a comfortable buffer below the actual context window (32,768 tokens) to account for the model's response.
 
 You can also trigger summarization manually at any time with the `/summarize` command — useful if you want to compress the conversation proactively.
 
@@ -195,7 +195,7 @@ If summarization fails (network error, model error), Zorac falls back to keeping
 
 ### MAX_INPUT_TOKENS
 
-**Default:** `12000`
+**Default:** `28000`
 
 The maximum number of tokens allowed for the system prompt plus conversation history. When this limit is exceeded, auto-summarization triggers.
 
@@ -205,7 +205,7 @@ This should be set lower than your model's actual context window (`--max-model-l
 MAX_INPUT_TOKENS = max_model_len - MAX_OUTPUT_TOKENS - buffer
 ```
 
-For Zorac's defaults: `16384 - 4000 - 384 ≈ 12000`
+For Zorac's defaults: `32768 - 4000 - 768 = 28000`
 
 ### MAX_OUTPUT_TOKENS
 
@@ -238,11 +238,11 @@ The number of recent messages preserved during auto-summarization. This creates 
 
 | Use Case | MAX_INPUT_TOKENS | MAX_OUTPUT_TOKENS | KEEP_RECENT_MESSAGES |
 |----------|-----------------|-------------------|---------------------|
-| **General chat** | 12000 | 4000 | 6 |
-| **Coding assistant** | 12000 | 4000 | 8 |
+| **General chat** | 28000 | 4000 | 6 |
+| **Coding assistant** | 28000 | 4000 | 8 |
 | **Quick Q&A** | 8000 | 2000 | 4 |
-| **Long-form writing** | 10000 | 6000 | 4 |
-| **Short context (8k model)** | 4000 | 2000 | 4 |
+| **Long-form writing** | 24000 | 6000 | 4 |
+| **Short context (16k model)** | 12000 | 4000 | 6 |
 
 All three settings can be changed at runtime via the `/config` command:
 

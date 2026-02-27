@@ -30,7 +30,7 @@ VLLM_API_KEY=EMPTY                       # vLLM doesn't require authentication
 VLLM_MODEL=dark-side-of-the-code/Mistral-Small-24B-Instruct-2501-AWQ
 
 # Token Limits (optional - defaults shown)
-# MAX_INPUT_TOKENS=12000
+# MAX_INPUT_TOKENS=28000
 # MAX_OUTPUT_TOKENS=4000
 # KEEP_RECENT_MESSAGES=6
 
@@ -77,7 +77,7 @@ VLLM_BASE_URL="http://192.168.1.100:8000/v1" uv run zorac
 
 | Setting                | Default | Description                                    |
 | ---------------------- | ------- | ---------------------------------------------- |
-| `MAX_INPUT_TOKENS`     | `12000` | Maximum tokens for input (system + history)    |
+| `MAX_INPUT_TOKENS`     | `28000` | Maximum tokens for input (system + history)    |
 | `MAX_OUTPUT_TOKENS`    | `4000`  | Maximum tokens for model responses             |
 | `KEEP_RECENT_MESSAGES` | `6`     | Messages to preserve during auto-summarization |
 
@@ -199,14 +199,14 @@ Disable streaming for complete responses:
 STREAM=false
 ```
 
-### Extended Context
+### Smaller Context Window
 
-Increase token limits for longer conversations:
+Reduce token limits for models or GPUs with less VRAM:
 
 ```bash
 # In .env file
-MAX_INPUT_TOKENS=24000
-KEEP_RECENT_MESSAGES=10
+MAX_INPUT_TOKENS=12000
+KEEP_RECENT_MESSAGES=6
 ```
 
 ### Custom Data Directory

@@ -7,6 +7,7 @@ Thank you for considering contributing to this project! This document provides g
 ### Reporting Bugs
 
 If you find a bug, please open an issue with:
+
 - A clear, descriptive title
 - Steps to reproduce the issue
 - Expected behavior vs. actual behavior
@@ -16,6 +17,7 @@ If you find a bug, please open an issue with:
 ### Suggesting Enhancements
 
 Enhancement suggestions are welcome! Please open an issue with:
+
 - A clear description of the enhancement
 - The motivation/use case for the feature
 - Any implementation ideas you have
@@ -104,6 +106,7 @@ make all-checks
 ```
 
 Manual testing checklist:
+
 - [ ] Application starts without errors
 - [ ] Can connect to vLLM server
 - [ ] Chat responses work correctly
@@ -118,6 +121,7 @@ Manual testing checklist:
 ## Areas for Contribution
 
 Some ideas for contributions:
+
 - **History search**: Search through conversation history
 - **Multiple model support**: Easy switching between models in runtime
 - **Session management**: Named sessions, session list/search

@@ -1,6 +1,6 @@
 [project]
 name = "zorac"
-version = "1.4.0"
+version = "1.4.1"
 description = "Interactive CLI chat client for vLLM inference servers with persistent sessions and automatic context management"
 readme = "README.md"
 license = { text = "MIT" }

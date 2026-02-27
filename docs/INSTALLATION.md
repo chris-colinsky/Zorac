@@ -4,13 +4,13 @@ This guide covers all methods for installing Zorac.
 
 ## Homebrew (macOS/Linux - Recommended)
 
-The easiest way to install Zorac on macOS or Linux:
+The easiest way to install Zorac on macOS or Linux. Pre-built bottles are available for macOS (arm64_sequoia, arm64_sonoma) — no compilation required, installs in seconds.
 
 ```bash
 # Add the tap
 brew tap chris-colinsky/zorac
 
-# Install
+# Install (uses pre-built bottle on supported macOS versions)
 brew install zorac
 
 # Verify installation

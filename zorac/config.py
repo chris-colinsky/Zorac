@@ -50,7 +50,7 @@ DEFAULT_CONFIG = {
     "VLLM_BASE_URL": "http://localhost:8000/v1",  # vLLM's default OpenAI-compatible endpoint
     "VLLM_API_KEY": "EMPTY",  # vLLM doesn't require auth by default; "EMPTY" is conventional
     "VLLM_MODEL": "dark-side-of-the-code/Mistral-Small-24B-Instruct-2501-AWQ",  # 24B AWQ-quantized model
-    "MAX_INPUT_TOKENS": "12000",  # Max tokens for system prompt + conversation history
+    "MAX_INPUT_TOKENS": "28000",  # Max tokens for system prompt + conversation history
     "MAX_OUTPUT_TOKENS": "4000",  # Max tokens the model can generate per response
     "KEEP_RECENT_MESSAGES": "6",  # Messages preserved during auto-summarization
     "TEMPERATURE": "0.1",  # Low temperature = more deterministic/focused responses
@@ -336,7 +336,7 @@ CODE_THEME = get_setting("CODE_THEME", DEFAULT_CONFIG["CODE_THEME"])
 # MAX_OUTPUT_TOKENS caps how much the model can generate per response.
 # KEEP_RECENT_MESSAGES determines how many recent messages are preserved
 # when older messages are summarized.
-MAX_INPUT_TOKENS = get_int_setting("MAX_INPUT_TOKENS", 12000)
+MAX_INPUT_TOKENS = get_int_setting("MAX_INPUT_TOKENS", 28000)
 MAX_OUTPUT_TOKENS = get_int_setting("MAX_OUTPUT_TOKENS", 4000)
 KEEP_RECENT_MESSAGES = get_int_setting("KEEP_RECENT_MESSAGES", 6)
 
